@@ -86,16 +86,10 @@ defmodule Chrona.Browser do
 
   defp with_ws_session(browser, fun) do
     browser
-    |> browser_ws_url()
+    |> Chrome.ws_url()
     |> case do
       {:ok, ws_url} -> CDP.with_session(ws_url, fun)
       {:error, _} = error -> error
     end
-  end
-
-  defp browser_ws_url(browser) when is_pid(browser) do
-    {:ok, :sys.get_state(browser).ws_url}
-  catch
-    :exit, _reason -> {:error, :browser_unavailable}
   end
 end

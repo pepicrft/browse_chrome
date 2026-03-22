@@ -12,11 +12,13 @@ defmodule Chrona do
       # Check out a browser from the pool
       Chrona.checkout(MyApp.ChromaPool, fn browser ->
         result =
-          Chrona.CDP.with_session(browser.ws_url, fn cdp ->
-            :ok = Chrona.CDP.navigate(cdp, "https://example.com")
-            {:ok, data} = Chrona.CDP.capture_screenshot(cdp, "jpeg", 90)
-            {:ok, Base.decode64!(data)}
-          end)
+          with {:ok, ws_url} <- Chrona.Chrome.ws_url(browser) do
+            Chrona.CDP.with_session(ws_url, fn cdp ->
+              :ok = Chrona.CDP.navigate(cdp, "https://example.com")
+              {:ok, data} = Chrona.CDP.capture_screenshot(cdp, "jpeg", 90)
+              {:ok, Base.decode64!(data)}
+            end)
+          end
 
         {result, :ok}
       end)
@@ -46,7 +48,6 @@ defmodule Chrona do
       ]
   """
 
-  alias Browse
   alias Chrona.BrowserPool
   alias Chrona.Telemetry
 
@@ -108,7 +109,7 @@ defmodule Chrona do
     timeout = Keyword.get(opts, :timeout, 30_000)
 
     Telemetry.span([:checkout], %{pool: pool, timeout: timeout}, fn ->
-      Browse.checkout(pool, fn browser -> fun.(unwrap_browser(browser)) end, opts)
+      BrowserPool.checkout(pool, fun, timeout)
     end)
   end
 
@@ -121,6 +122,4 @@ defmodule Chrona do
   def configured_pools do
     Application.get_env(:chrona, :pools, [])
   end
-
-  defp unwrap_browser(%Browse{state: browser}), do: browser
 end

@@ -66,11 +66,13 @@ Chrona does not start a pool for you. The consumer owns pool supervision and dec
 Chrona.checkout(MyApp.ChromaPool, fn browser ->
   # Use Chrona.CDP to interact with the browser
   result =
-    Chrona.CDP.with_session(browser.ws_url, fn cdp ->
-      :ok = Chrona.CDP.navigate(cdp, "https://example.com")
-      {:ok, screenshot_data} = Chrona.CDP.capture_screenshot(cdp, "jpeg", 90)
-      {:ok, Base.decode64!(screenshot_data)}
-    end)
+    with {:ok, ws_url} <- Chrona.Chrome.ws_url(browser) do
+      Chrona.CDP.with_session(ws_url, fn cdp ->
+        :ok = Chrona.CDP.navigate(cdp, "https://example.com")
+        {:ok, screenshot_data} = Chrona.CDP.capture_screenshot(cdp, "jpeg", 90)
+        {:ok, Base.decode64!(screenshot_data)}
+      end)
+    end
 
   {result, :ok}
 end)
@@ -110,10 +112,12 @@ Use `Chrona.CDP.command/3` to call any CDP method directly:
 ```elixir
 Chrona.checkout(MyApp.ChromaPool, fn browser ->
   result =
-    Chrona.CDP.with_session(browser.ws_url, fn cdp ->
-      {:ok, version} = Chrona.CDP.command(cdp, "Browser.getVersion")
-      {:ok, version}
-    end)
+    with {:ok, ws_url} <- Chrona.Chrome.ws_url(browser) do
+      Chrona.CDP.with_session(ws_url, fn cdp ->
+        {:ok, version} = Chrona.CDP.command(cdp, "Browser.getVersion")
+        {:ok, version}
+      end)
+    end
 
   {result, :ok}
 end)

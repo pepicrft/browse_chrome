@@ -41,6 +41,16 @@ defmodule Chrona.Chrome do
     )
   end
 
+  @doc """
+  Returns the browser worker's Chrome DevTools Protocol WebSocket URL.
+  """
+  @spec ws_url(pid()) :: {:ok, String.t()} | {:error, :browser_unavailable}
+  def ws_url(browser) when is_pid(browser) do
+    {:ok, :sys.get_state(browser).ws_url}
+  catch
+    :exit, _reason -> {:error, :browser_unavailable}
+  end
+
   # GenServer Callbacks
 
   @impl GenServer
