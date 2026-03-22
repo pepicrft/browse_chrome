@@ -29,7 +29,7 @@ defmodule ChronaTest do
 
       result =
         Chrona.checkout(pool, fn browser ->
-          case Chrona.Browser.capture(browser, html, width: 1200, height: 630, quality: 90) do
+          case Chrona.Chrome.capture(browser, html, width: 1200, height: 630, quality: 90) do
             {:ok, _} = ok -> {ok, :ok}
             {:error, _} = error -> {error, :remove}
           end

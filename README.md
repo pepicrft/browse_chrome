@@ -60,15 +60,16 @@ end)
 ### Direct browser management
 
 ```elixir
-{:ok, browser} = Chrona.Browser.start_link()
+{:ok, browser} = Chrona.Chrome.start_link()
 
-{:ok, jpeg_binary} = Chrona.Browser.capture(browser, "<h1>Hello!</h1>", width: 1200, height: 630, quality: 90)
+{:ok, jpeg_binary} = Chrona.Chrome.capture(browser, "<h1>Hello!</h1>", width: 1200, height: 630, quality: 90)
 ```
 
 ### Modules
 
-- `Chrona.Browser` - GenServer managing a single headless Chrome instance
+- `Chrona.Chrome` - GenServer managing a single headless Chrome instance
 - `Chrona.CDP` - WebSocket client for the Chrome DevTools Protocol
+- `Chrona.Browser` - `Browse.Browser` adapter built on Chrona's Chrome worker
 - `Chrona.BrowserPool` - Chrona-facing pool wrapper backed by `Browse`
 
 ### Use the full CDP surface

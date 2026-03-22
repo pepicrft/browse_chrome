@@ -49,7 +49,7 @@ defmodule Chrona do
   ## Examples
 
       Chrona.checkout(MyApp.ChromaPool, fn browser ->
-        case Chrona.Browser.capture(browser, html, opts) do
+        case Chrona.Chrome.capture(browser, html, opts) do
           {:ok, _} = ok -> {ok, :ok}
           {:error, _} = error -> {error, :remove}
         end

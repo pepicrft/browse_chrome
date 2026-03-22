@@ -1,9 +1,9 @@
 defmodule Chrona.BrowserPool do
   @moduledoc """
-  Compatibility wrapper around `Browse` for pools of warm `Chrona.Browser` workers.
+  Compatibility wrapper around `Browse` for pools of warm `Chrona.Chrome` workers.
   """
   alias Browse
-  alias Chrona.BrowseBackend
+  alias Chrona.Browser
 
   def child_spec(opts) do
     {pool, opts} = pool_and_opts(opts)
@@ -25,7 +25,7 @@ defmodule Chrona.BrowserPool do
 
   defp pool_and_opts(opts) do
     {pool, opts} = Keyword.pop(opts, :name, __MODULE__)
-    {pool, Keyword.put_new(opts, :implementation, BrowseBackend)}
+    {pool, Keyword.put_new(opts, :implementation, Browser)}
   end
 
   defp unwrap_browser(%Browse{state: browser}), do: browser

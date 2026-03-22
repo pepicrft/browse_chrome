@@ -1,194 +1,101 @@
 defmodule Chrona.Browser do
-  @moduledoc """
-  A GenServer that manages a headless Chrome/Chromium instance.
+  @moduledoc false
 
-  Each Browser process owns a single Chrome process and its CDP WebSocket URL.
-  Screenshots are taken via `capture/3` which is a synchronous GenServer call.
-  """
-
-  use GenServer
+  @behaviour Browse.Browser
 
   alias Chrona.CDP
-  alias Chrona.Telemetry
+  alias Chrona.Chrome
 
-  # Client API
-
-  @doc """
-  Starts a Browser process that launches a headless Chrome instance.
-  """
-  def start_link(opts \\ []) do
-    GenServer.start_link(__MODULE__, opts)
-  end
-
-  @doc """
-  Captures a screenshot of the given HTML content as a JPEG binary.
-  """
-  @spec capture(pid(), String.t(), keyword()) :: {:ok, binary()} | {:error, term()}
-  def capture(browser, html, opts) do
-    metadata = %{
-      width: Keyword.fetch!(opts, :width),
-      height: Keyword.fetch!(opts, :height),
-      quality: Keyword.fetch!(opts, :quality)
-    }
-
-    Telemetry.span(
-      [:browser, :capture],
-      metadata,
-      fn ->
-        GenServer.call(browser, {:capture, html, opts}, 30_000)
-      end,
-      &Telemetry.status_metadata/1
-    )
-  end
-
-  # GenServer Callbacks
-
-  @impl GenServer
+  @impl Browse.Browser
   def init(opts) do
-    chrome_path = Keyword.get(opts, :chrome_path) || find_chrome()
-
-    Telemetry.span(
-      [:browser, :init],
-      %{chrome_path: chrome_path},
-      fn ->
-        if is_nil(chrome_path) do
-          {:stop, :chrome_not_found}
-        else
-          port = find_available_port()
-          {:ok, user_data_dir} = Briefly.create(directory: true)
-
-          args = [
-            "--headless=new",
-            "--disable-gpu",
-            "--no-sandbox",
-            "--disable-dev-shm-usage",
-            "--hide-scrollbars",
-            "--remote-debugging-port=#{port}",
-            "--user-data-dir=#{user_data_dir}",
-            "about:blank"
-          ]
-
-          chrome_pid =
-            spawn_link(fn ->
-              MuonTrap.cmd(chrome_path, args, stderr_to_stdout: true)
-            end)
-
-          case wait_for_devtools(port) do
-            {:ok, ws_url} ->
-              {:ok, %{chrome_pid: chrome_pid, ws_url: ws_url}}
-
-            {:error, reason} ->
-              {:stop, reason}
-          end
-        end
-      end,
-      &Telemetry.status_metadata/1
-    )
+    opts
+    |> Keyword.delete(:name)
+    |> Chrome.start_link()
   end
 
-  @impl GenServer
-  def handle_call({:capture, html, opts}, _from, state) do
-    width = Keyword.fetch!(opts, :width)
-    height = Keyword.fetch!(opts, :height)
-    quality = Keyword.fetch!(opts, :quality)
-
-    {:ok, html_path} = Briefly.create(extname: ".html")
-    File.write!(html_path, html)
-    file_url = "file://#{html_path}"
-
-    result = take_screenshot(state.ws_url, file_url, width, height, quality)
-    {:reply, result, state}
-  end
-
-  @impl GenServer
-  def terminate(_reason, %{chrome_pid: chrome_pid}) do
-    Process.exit(chrome_pid, :kill)
+  @impl Browse.Browser
+  def terminate(_reason, browser) when is_pid(browser) do
+    GenServer.stop(browser, :normal)
     :ok
+  catch
+    :exit, _reason -> :ok
   end
 
-  def terminate(_reason, _state), do: :ok
-
-  # Private
-
-  defp take_screenshot(ws_url, file_url, width, height, quality) do
-    with {:ok, data} <-
-           CDP.with_session(ws_url, fn cdp ->
-             with :ok <- CDP.set_device_metrics(cdp, width, height),
-                  :ok <- CDP.navigate(cdp, file_url) do
-               CDP.capture_screenshot(cdp, "jpeg", quality)
-             end
-           end) do
-      {:ok, Base.decode64!(data)}
-    end
+  @impl Browse.Browser
+  def navigate(browser, url, _opts) do
+    with_ws_session(browser, fn cdp -> CDP.navigate(cdp, url) end)
   end
 
-  defp find_chrome do
-    paths =
-      case :os.type() do
-        {:unix, :darwin} ->
-          [
-            "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-            "/Applications/Chromium.app/Contents/MacOS/Chromium",
-            "/Applications/Google Chrome Canary.app/Contents/MacOS/Google Chrome Canary"
-          ]
-
-        {:unix, _} ->
-          [
-            "google-chrome",
-            "google-chrome-stable",
-            "chromium",
-            "chromium-browser"
-          ]
-
-        {:win32, _} ->
-          [
-            "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
-            "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe"
-          ]
-      end
-
-    Enum.find(paths, fn path ->
-      case System.find_executable(path) do
-        nil -> File.exists?(path)
-        _ -> true
+  @impl Browse.Browser
+  def current_url(browser) do
+    with_ws_session(browser, fn cdp ->
+      case CDP.command(cdp, "Runtime.evaluate", %{expression: "window.location.href"}) do
+        {:ok, %{"result" => %{"value" => url}}} -> {:ok, url}
+        {:ok, result} -> {:error, {:unexpected_response, result}}
+        {:error, _} = error -> error
       end
     end)
   end
 
-  defp find_available_port do
-    {:ok, socket} = :gen_tcp.listen(0, reuseaddr: true)
-    {:ok, port} = :inet.port(socket)
-    :gen_tcp.close(socket)
-    port
+  @impl Browse.Browser
+  def content(browser) do
+    with_ws_session(browser, fn cdp ->
+      case CDP.command(cdp, "Runtime.evaluate", %{expression: "document.documentElement.outerHTML"}) do
+        {:ok, %{"result" => %{"value" => html}}} -> {:ok, html}
+        {:ok, result} -> {:error, {:unexpected_response, result}}
+        {:error, _} = error -> error
+      end
+    end)
   end
 
-  defp wait_for_devtools(port, attempts \\ 100) do
-    wait_for_devtools(port, attempts, 0)
+  @impl Browse.Browser
+  def evaluate(browser, script, _opts) do
+    with_ws_session(browser, fn cdp ->
+      case CDP.command(cdp, "Runtime.evaluate", %{expression: script, returnByValue: true}) do
+        {:ok, %{"result" => %{"value" => value}}} -> {:ok, value}
+        {:ok, %{"result" => result}} -> {:ok, result}
+        {:ok, result} -> {:ok, result}
+        {:error, _} = error -> error
+      end
+    end)
   end
 
-  defp wait_for_devtools(_port, max_attempts, attempt) when attempt >= max_attempts do
-    {:error, :devtools_timeout}
+  @impl Browse.Browser
+  def capture_screenshot(browser, opts) do
+    quality = Keyword.get(opts, :quality, 90)
+    format = Keyword.get(opts, :format, "png")
+
+    with_ws_session(browser, fn cdp ->
+      with {:ok, data} <- CDP.capture_screenshot(cdp, format, quality) do
+        {:ok, Base.decode64!(data)}
+      end
+    end)
   end
 
-  defp wait_for_devtools(port, max_attempts, attempt) do
-    url = ~c"http://127.0.0.1:#{port}/json/list"
+  @impl Browse.Browser
+  def print_to_pdf(_browser, _opts), do: {:error, :unsupported}
 
-    case :httpc.request(:get, {url, []}, [timeout: 1000], []) do
-      {:ok, {{_, 200, _}, _, body}} ->
-        targets = JSON.decode!(to_string(body))
+  @impl Browse.Browser
+  def click(_browser, _locator, _opts), do: {:error, :unsupported}
 
-        case Enum.find(targets, &(&1["type"] == "page")) do
-          %{"webSocketDebuggerUrl" => ws_url} -> {:ok, ws_url}
-          _ -> retry_devtools(port, max_attempts, attempt)
-        end
+  @impl Browse.Browser
+  def fill(_browser, _locator, _value, _opts), do: {:error, :unsupported}
 
-      _ ->
-        retry_devtools(port, max_attempts, attempt)
+  @impl Browse.Browser
+  def wait_for(_browser, _locator, _opts), do: {:error, :unsupported}
+
+  defp with_ws_session(browser, fun) do
+    browser
+    |> browser_ws_url()
+    |> case do
+      {:ok, ws_url} -> CDP.with_session(ws_url, fun)
+      {:error, _} = error -> error
     end
   end
 
-  defp retry_devtools(port, max_attempts, attempt) do
-    Process.sleep(100)
-    wait_for_devtools(port, max_attempts, attempt + 1)
+  defp browser_ws_url(browser) when is_pid(browser) do
+    {:ok, :sys.get_state(browser).ws_url}
+  catch
+    :exit, _reason -> {:error, :browser_unavailable}
   end
 end
