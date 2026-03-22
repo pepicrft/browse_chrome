@@ -7,7 +7,9 @@
 
 Manage headless Chrome instances via the Chrome DevTools Protocol.
 
-Chrona provides a pool of warm headless Chrome/Chromium instances managed through a supervision tree, ready for use via the Chrome DevTools Protocol. It handles browser lifecycle, CDP WebSocket communication, and pool management so you can focus on what you want to do with the browser.
+Chrona provides a pool of warm headless Chrome/Chromium instances managed through a supervision tree, ready for use via the Chrome DevTools Protocol. It handles Chrome lifecycle and CDP WebSocket communication directly, and now delegates shared browser interface and pool runtime responsibilities to [`Browse`](https://hex.pm/packages/browse).
+
+`Browse` is an internal implementation detail. Configure Chrona through `:chrona`; Chrona passes the relevant pool options down to `Browse` under the hood.
 
 ## 📦 Installation
 
@@ -27,6 +29,25 @@ Chrona requires Chrome or Chromium to be installed on the system. It will auto-d
 
 ### Add a pool to your supervision tree
 
+Configure pools through Chrona:
+
+```elixir
+config :chrona,
+  default_pool: MyApp.ChromaPool,
+  pools: [
+    MyApp.ChromaPool: [pool_size: 4, chrome_path: "/usr/bin/chromium"]
+  ]
+```
+
+Then add the configured pools to your supervision tree:
+
+```elixir
+# lib/my_app/application.ex
+children = Chrona.children()
+```
+
+Or start a pool directly:
+
 ```elixir
 # lib/my_app/application.ex
 children = [
@@ -37,35 +58,70 @@ children = [
 ]
 ```
 
-Chrona does not start a pool for you. The consumer owns pool supervision and decides how many pools to run, how they are named, and where they live in the supervision tree.
+Chrona does not start a pool for you. The consumer owns pool supervision and decides how many pools to run, how they are named, and where they live in the supervision tree. `Chrona.BrowserPool` remains the Chrona-facing compatibility wrapper, backed internally by `Browse`, but its configuration now lives under `:chrona`.
 
 ### Check out a browser from a pool
 
 ```elixir
 Chrona.checkout(MyApp.ChromaPool, fn browser ->
   # Use Chrona.CDP to interact with the browser
-  {:ok, cdp} = Chrona.CDP.connect(browser.ws_url)
-  :ok = Chrona.CDP.navigate(cdp, "https://example.com")
-  {:ok, screenshot_data} = Chrona.CDP.capture_screenshot(cdp, "jpeg", 90)
-  Chrona.CDP.disconnect(cdp)
+  result =
+    with {:ok, ws_url} <- Chrona.Chrome.ws_url(browser) do
+      Chrona.CDP.with_session(ws_url, fn cdp ->
+        :ok = Chrona.CDP.navigate(cdp, "https://example.com")
+        {:ok, screenshot_data} = Chrona.CDP.capture_screenshot(cdp, "jpeg", 90)
+        {:ok, Base.decode64!(screenshot_data)}
+      end)
+    end
 
-  {{:ok, Base.decode64!(screenshot_data)}, :ok}
+  {result, :ok}
+end)
+```
+
+`Chrona.CDP.with_session/2` is the recommended API. It guarantees the WebSocket is disconnected even if your callback raises or returns early.
+
+If you configured `default_pool`, you can omit the pool name:
+
+```elixir
+Chrona.checkout(fn browser ->
+  {:ok, browser}
 end)
 ```
 
 ### Direct browser management
 
 ```elixir
-{:ok, browser} = Chrona.Browser.start_link()
+{:ok, browser} = Chrona.Chrome.start_link()
 
-{:ok, jpeg_binary} = Chrona.Browser.capture(browser, "<h1>Hello!</h1>", width: 1200, height: 630, quality: 90)
+{:ok, jpeg_binary} = Chrona.Chrome.capture(browser, "<h1>Hello!</h1>", width: 1200, height: 630, quality: 90)
 ```
 
 ### Modules
 
-- `Chrona.Browser` - GenServer managing a single headless Chrome instance
+- `Chrona.Chrome` - GenServer managing a single headless Chrome instance
 - `Chrona.CDP` - WebSocket client for the Chrome DevTools Protocol
-- `Chrona.BrowserPool` - NimblePool for warm Chrome instances
+- `Chrona.Browser` - `Browse.Browser` adapter built on Chrona's Chrome worker
+- `Chrona.BrowserPool` - Chrona-facing pool wrapper backed by `Browse`
+
+### Use the full CDP surface
+
+The convenience helpers cover common tasks like navigation, viewport setup, and screenshots, but Chrome exposes many more methods than those wrappers.
+
+Use `Chrona.CDP.command/3` to call any CDP method directly:
+
+```elixir
+Chrona.checkout(MyApp.ChromaPool, fn browser ->
+  result =
+    with {:ok, ws_url} <- Chrona.Chrome.ws_url(browser) do
+      Chrona.CDP.with_session(ws_url, fn cdp ->
+        {:ok, version} = Chrona.CDP.command(cdp, "Browser.getVersion")
+        {:ok, version}
+      end)
+    end
+
+  {result, :ok}
+end)
+```
 
 ## ⚙️ Setup
 
@@ -86,7 +142,9 @@ Options:
 - `:pool_size` - number of warm Chrome instances (default: `2`)
 - `:chrome_path` - path to Chrome/Chromium binary (auto-detected if omitted)
 
-Then pass the pool name or pid to `Chrona.checkout/3`:
+The `:chrona, :pools` entries accept the same pool options Chrona passes down to `Browse`, while keeping the `Browse` implementation module internal.
+
+Then pass the pool name or pid to `Chrona.checkout/3`, or use `Chrona.checkout/1` with `:default_pool` configured:
 
 ```elixir
 Chrona.checkout(MyApp.ChromaPool, fn browser ->

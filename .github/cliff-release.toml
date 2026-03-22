@@ -7,7 +7,7 @@ body = """
 {% for group, commits in commits | group_by(attribute="group") %}
 ### {{ group }}
 {% for commit in commits %}
-- {% if commit.remote.pr_title %}{{ commit.remote.pr_title }}{% else %}{{ commit.message | split(pat="\n") | first | trim }}{% endif %}{% if commit.remote.pr_number %} ([#{{ commit.remote.pr_number }}](https://github.com/{{ remote.github.owner }}/{{ remote.github.repo }}/pull/{{ commit.remote.pr_number }})){% endif %}{% if commit.remote.username %} by [@{{ commit.remote.username }}](https://github.com/{{ commit.remote.username }}){% endif %}
+- {% if commit.remote.pr_title %}{{ commit.remote.pr_title | replace(from="feat: ", to="") | replace(from="fix: ", to="") | replace(from="refactor: ", to="") | replace(from="docs: ", to="") | replace(from="chore: ", to="") | replace(from="test: ", to="") }}{% else %}{{ commit.message | split(pat="\n") | first | trim | replace(from="feat: ", to="") | replace(from="fix: ", to="") | replace(from="refactor: ", to="") | replace(from="docs: ", to="") | replace(from="chore: ", to="") | replace(from="test: ", to="") }}{% endif %}{% if commit.remote.pr_number %} ([#{{ commit.remote.pr_number }}](https://github.com/{{ remote.github.owner }}/{{ remote.github.repo }}/pull/{{ commit.remote.pr_number }})){% endif %}{% if commit.remote.username %} by [@{{ commit.remote.username }}](https://github.com/{{ commit.remote.username }}){% endif %}
 {% endfor %}
 {% endfor %}
 """

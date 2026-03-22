@@ -54,7 +54,7 @@ defmodule Chrona.TelemetryTest do
 
     assert {:ok, jpeg_binary} =
              Chrona.checkout(pool, fn browser ->
-               result = Chrona.Browser.capture(browser, html, width: 800, height: 600, quality: 85)
+               result = Chrona.Chrome.capture(browser, html, width: 800, height: 600, quality: 85)
                {result, :ok}
              end)
 

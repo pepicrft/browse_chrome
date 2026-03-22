@@ -1,7 +1,7 @@
 defmodule Chrona.MixProject do
   use Mix.Project
 
-  @version "0.1.1"
+  @version "0.2.2"
   @source_url "https://github.com/pepicrft/chrona"
 
   def project do
@@ -32,6 +32,7 @@ defmodule Chrona.MixProject do
 
   defp deps do
     [
+      {:browse, "~> 0.1.0"},
       {:telemetry, "~> 1.3"},
 
       # Chrome process management
