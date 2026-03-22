@@ -23,8 +23,7 @@ defmodule Chrona.MixProject do
 
   def application do
     [
-      extra_applications: [:logger, :inets],
-      mod: {Chrona.Application, []}
+      extra_applications: [:logger, :inets]
     ]
   end
 
@@ -33,6 +32,8 @@ defmodule Chrona.MixProject do
 
   defp deps do
     [
+      {:telemetry, "~> 1.3"},
+
       # Chrome process management
       {:muontrap, "~> 1.7"},
 

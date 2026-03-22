@@ -25,10 +25,24 @@ Chrona requires Chrome or Chromium to be installed on the system. It will auto-d
 
 ## 🚀 Usage
 
-### Check out a browser from the pool
+### Add a pool to your supervision tree
 
 ```elixir
-Chrona.checkout(fn browser ->
+# lib/my_app/application.ex
+children = [
+  {Chrona.BrowserPool,
+   name: MyApp.ChromaPool,
+   pool_size: 4,
+   chrome_path: "/usr/bin/chromium"}
+]
+```
+
+Chrona does not start a pool for you. The consumer owns pool supervision and decides how many pools to run, how they are named, and where they live in the supervision tree.
+
+### Check out a browser from a pool
+
+```elixir
+Chrona.checkout(MyApp.ChromaPool, fn browser ->
   # Use Chrona.CDP to interact with the browser
   {:ok, cdp} = Chrona.CDP.connect(browser.ws_url)
   :ok = Chrona.CDP.navigate(cdp, "https://example.com")
@@ -42,10 +56,8 @@ end)
 ### Direct browser management
 
 ```elixir
-# Start a standalone browser instance
 {:ok, browser} = Chrona.Browser.start_link()
 
-# Capture a screenshot
 {:ok, jpeg_binary} = Chrona.Browser.capture(browser, "<h1>Hello!</h1>", width: 1200, height: 630, quality: 90)
 ```
 
@@ -55,13 +67,59 @@ end)
 - `Chrona.CDP` - WebSocket client for the Chrome DevTools Protocol
 - `Chrona.BrowserPool` - NimblePool for warm Chrome instances
 
-## ⚙️ Configuration
+## ⚙️ Setup
+
+Add `Chrona.BrowserPool` to your application's supervision tree:
 
 ```elixir
-# config/config.exs
-config :chrona,
-  pool_size: 4,                       # number of warm Chrome instances (default: 2)
-  chrome_path: "/usr/bin/chromium"     # auto-detected if omitted
+# lib/my_app/application.ex
+children = [
+  {Chrona.BrowserPool,
+   name: MyApp.ChromaPool,
+   pool_size: 4,
+   chrome_path: "/usr/bin/chromium"}
+]
+```
+
+Options:
+- `:name` - pool name used when checking out browsers
+- `:pool_size` - number of warm Chrome instances (default: `2`)
+- `:chrome_path` - path to Chrome/Chromium binary (auto-detected if omitted)
+
+Then pass the pool name or pid to `Chrona.checkout/3`:
+
+```elixir
+Chrona.checkout(MyApp.ChromaPool, fn browser ->
+  {:ok, :done}
+end)
+```
+
+## 📡 Telemetry
+
+Chrona emits [Telemetry](https://hexdocs.pm/telemetry) events for its main lifecycle operations:
+
+- `[:chrona, :checkout, :start | :stop | :exception]`
+- `[:chrona, :browser, :init, :start | :stop | :exception]`
+- `[:chrona, :browser, :capture, :start | :stop | :exception]`
+- `[:chrona, :cdp, :connect, :start | :stop | :exception]`
+- `[:chrona, :cdp, :disconnect, :start | :stop | :exception]`
+- `[:chrona, :cdp, :command, :start | :stop | :exception]`
+
+Stop and exception events include a `:duration` measurement in native time units. CDP command events include the `:method` metadata field, and browser capture events include `:width`, `:height`, and `:quality`.
+
+```elixir
+:telemetry.attach_many(
+  "chrona-logger",
+  [
+    [:chrona, :checkout, :stop],
+    [:chrona, :browser, :capture, :stop],
+    [:chrona, :cdp, :command, :stop]
+  ],
+  fn event, measurements, metadata, _config ->
+    IO.inspect({event, measurements, metadata}, label: "chrona.telemetry")
+  end,
+  nil
+)
 ```
 
 ## 📄 License

@@ -11,8 +11,10 @@ defmodule Chrona.BrowserPool do
   alias Chrona.Browser
 
   def child_spec(opts) do
+    name = Keyword.get(opts, :name, __MODULE__)
+
     %{
-      id: __MODULE__,
+      id: name,
       start: {__MODULE__, :start_link, [opts]},
       type: :worker
     }
@@ -20,16 +22,22 @@ defmodule Chrona.BrowserPool do
 
   def start_link(opts) do
     {pool_size, worker_opts} = Keyword.pop!(opts, :pool_size)
-    NimblePool.start_link(worker: {__MODULE__, worker_opts}, pool_size: pool_size, name: __MODULE__)
+    {name, worker_opts} = Keyword.pop(worker_opts, :name)
+
+    pool_opts =
+      [worker: {__MODULE__, worker_opts}, pool_size: pool_size]
+      |> maybe_put_name(name)
+
+    NimblePool.start_link(pool_opts)
   end
 
   @doc """
   Checks out a warm Browser process, runs the given function with it,
   and checks it back in.
   """
-  def checkout(fun, timeout \\ 30_000) do
+  def checkout(pool, fun, timeout \\ 30_000) do
     NimblePool.checkout!(
-      __MODULE__,
+      pool,
       :checkout,
       fn _from, browser ->
         fun.(browser)
@@ -47,7 +55,7 @@ defmodule Chrona.BrowserPool do
         {:ok, browser, opts}
 
       {:error, reason} ->
-        {:error, reason}
+        raise "failed to start browser worker: #{inspect(reason)}"
     end
   end
 
@@ -70,4 +78,7 @@ defmodule Chrona.BrowserPool do
     GenServer.stop(browser, :normal)
     {:ok, pool_state}
   end
+
+  defp maybe_put_name(opts, nil), do: opts
+  defp maybe_put_name(opts, name), do: Keyword.put(opts, :name, name)
 end
