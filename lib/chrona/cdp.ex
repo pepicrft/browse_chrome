@@ -2,8 +2,8 @@ defmodule Chrona.CDP do
   @moduledoc """
   A minimal Chrome DevTools Protocol client over WebSocket.
 
-  Provides just enough CDP functionality to navigate to a page,
-  set viewport dimensions, and capture screenshots.
+  Provides a safe session API and a generic command interface for
+  interacting with the Chrome DevTools Protocol.
   """
 
   use WebSockex
@@ -31,6 +31,27 @@ defmodule Chrona.CDP do
   end
 
   @doc """
+  Opens a CDP session, runs the given function, and always disconnects afterward.
+
+  Returns the callback result on success, or `{:error, reason}` if the connection
+  could not be established.
+  """
+  @spec with_session(String.t(), (pid() -> result)) :: result | {:error, term()} when result: var
+  def with_session(ws_url, fun) when is_function(fun, 1) do
+    case connect(ws_url) do
+      {:ok, pid} ->
+        try do
+          fun.(pid)
+        after
+          disconnect(pid)
+        end
+
+      {:error, _} = error ->
+        error
+    end
+  end
+
+  @doc """
   Disconnects from the CDP WebSocket.
   """
   @spec disconnect(pid()) :: :ok
@@ -47,11 +68,21 @@ defmodule Chrona.CDP do
   end
 
   @doc """
+  Sends an arbitrary Chrome DevTools Protocol command.
+
+  Returns `{:ok, result}` with the raw CDP response payload.
+  """
+  @spec command(pid(), String.t(), map()) :: {:ok, map()} | {:error, term()}
+  def command(pid, method, params \\ %{}) when is_binary(method) and is_map(params) do
+    request(pid, method, params)
+  end
+
+  @doc """
   Sets the device metrics (viewport size) for the page.
   """
   @spec set_device_metrics(pid(), pos_integer(), pos_integer()) :: :ok | {:error, term()}
   def set_device_metrics(pid, width, height) do
-    send_command(pid, "Emulation.setDeviceMetricsOverride", %{
+    command(pid, "Emulation.setDeviceMetricsOverride", %{
       width: width,
       height: height,
       deviceScaleFactor: 2,
@@ -68,12 +99,12 @@ defmodule Chrona.CDP do
   """
   @spec navigate(pid(), String.t()) :: :ok | {:error, term()}
   def navigate(pid, url) do
-    case send_command(pid, "Page.enable", %{}) do
+    case command(pid, "Page.enable", %{}) do
       {:ok, _} -> :ok
       error -> error
     end
 
-    case send_command(pid, "Page.navigate", %{url: url}) do
+    case command(pid, "Page.navigate", %{url: url}) do
       {:ok, _} -> wait_for_load(pid)
       error -> error
     end
@@ -88,7 +119,7 @@ defmodule Chrona.CDP do
   def capture_screenshot(pid, format, quality) do
     params = %{format: format, quality: quality, fromSurface: true}
 
-    case send_command(pid, "Page.captureScreenshot", params) do
+    case command(pid, "Page.captureScreenshot", params) do
       {:ok, %{"data" => data}} -> {:ok, data}
       error -> error
     end
@@ -98,7 +129,7 @@ defmodule Chrona.CDP do
     # Give the page time to render
     Process.sleep(500)
 
-    case send_command(pid, "Runtime.evaluate", %{expression: "document.readyState"}) do
+    case command(pid, "Runtime.evaluate", %{expression: "document.readyState"}) do
       {:ok, %{"result" => %{"value" => "complete"}}} ->
         # Extra time for any async rendering
         Process.sleep(200)
@@ -113,7 +144,7 @@ defmodule Chrona.CDP do
     end
   end
 
-  defp send_command(pid, method, params) do
+  defp request(pid, method, params) do
     Telemetry.span(
       [:cdp, :command],
       %{method: method},

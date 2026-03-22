@@ -111,11 +111,13 @@ defmodule Chrona.Browser do
   # Private
 
   defp take_screenshot(ws_url, file_url, width, height, quality) do
-    with {:ok, cdp} <- CDP.connect(ws_url),
-         :ok <- CDP.set_device_metrics(cdp, width, height),
-         :ok <- CDP.navigate(cdp, file_url),
-         {:ok, data} <- CDP.capture_screenshot(cdp, "jpeg", quality) do
-      CDP.disconnect(cdp)
+    with {:ok, data} <-
+           CDP.with_session(ws_url, fn cdp ->
+             with :ok <- CDP.set_device_metrics(cdp, width, height),
+                  :ok <- CDP.navigate(cdp, file_url) do
+               CDP.capture_screenshot(cdp, "jpeg", quality)
+             end
+           end) do
       {:ok, Base.decode64!(data)}
     end
   end

@@ -44,14 +44,18 @@ Chrona does not start a pool for you. The consumer owns pool supervision and dec
 ```elixir
 Chrona.checkout(MyApp.ChromaPool, fn browser ->
   # Use Chrona.CDP to interact with the browser
-  {:ok, cdp} = Chrona.CDP.connect(browser.ws_url)
-  :ok = Chrona.CDP.navigate(cdp, "https://example.com")
-  {:ok, screenshot_data} = Chrona.CDP.capture_screenshot(cdp, "jpeg", 90)
-  Chrona.CDP.disconnect(cdp)
+  result =
+    Chrona.CDP.with_session(browser.ws_url, fn cdp ->
+      :ok = Chrona.CDP.navigate(cdp, "https://example.com")
+      {:ok, screenshot_data} = Chrona.CDP.capture_screenshot(cdp, "jpeg", 90)
+      {:ok, Base.decode64!(screenshot_data)}
+    end)
 
-  {{:ok, Base.decode64!(screenshot_data)}, :ok}
+  {result, :ok}
 end)
 ```
+
+`Chrona.CDP.with_session/2` is the recommended API. It guarantees the WebSocket is disconnected even if your callback raises or returns early.
 
 ### Direct browser management
 
@@ -66,6 +70,24 @@ end)
 - `Chrona.Browser` - GenServer managing a single headless Chrome instance
 - `Chrona.CDP` - WebSocket client for the Chrome DevTools Protocol
 - `Chrona.BrowserPool` - NimblePool for warm Chrome instances
+
+### Use the full CDP surface
+
+The convenience helpers cover common tasks like navigation, viewport setup, and screenshots, but Chrome exposes many more methods than those wrappers.
+
+Use `Chrona.CDP.command/3` to call any CDP method directly:
+
+```elixir
+Chrona.checkout(MyApp.ChromaPool, fn browser ->
+  result =
+    Chrona.CDP.with_session(browser.ws_url, fn cdp ->
+      {:ok, version} = Chrona.CDP.command(cdp, "Browser.getVersion")
+      {:ok, version}
+    end)
+
+  {result, :ok}
+end)
+```
 
 ## ⚙️ Setup
 

@@ -10,11 +10,14 @@ defmodule Chrona do
 
       # Check out a browser from the pool
       Chrona.checkout(MyApp.ChromaPool, fn browser ->
-        {:ok, cdp} = Chrona.CDP.connect(browser.ws_url)
-        :ok = Chrona.CDP.navigate(cdp, "https://example.com")
-        {:ok, data} = Chrona.CDP.capture_screenshot(cdp, "jpeg", 90)
-        Chrona.CDP.disconnect(cdp)
-        {{:ok, Base.decode64!(data)}, :ok}
+        result =
+          Chrona.CDP.with_session(browser.ws_url, fn cdp ->
+            :ok = Chrona.CDP.navigate(cdp, "https://example.com")
+            {:ok, data} = Chrona.CDP.capture_screenshot(cdp, "jpeg", 90)
+            {:ok, Base.decode64!(data)}
+          end)
+
+        {result, :ok}
       end)
 
   ## Setup
