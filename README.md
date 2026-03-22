@@ -9,6 +9,8 @@ Manage headless Chrome instances via the Chrome DevTools Protocol.
 
 Chrona provides a pool of warm headless Chrome/Chromium instances managed through a supervision tree, ready for use via the Chrome DevTools Protocol. It handles Chrome lifecycle and CDP WebSocket communication directly, and now delegates shared browser interface and pool runtime responsibilities to [`Browse`](https://hex.pm/packages/browse).
 
+`Browse` is an internal implementation detail. Configure Chrona through `:chrona`; Chrona passes the relevant pool options down to `Browse` under the hood.
+
 ## 📦 Installation
 
 Add `chrona` to your list of dependencies in `mix.exs`:
