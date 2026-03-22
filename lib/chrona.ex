@@ -17,12 +17,13 @@ defmodule Chrona do
         {{:ok, Base.decode64!(data)}, :ok}
       end)
 
-  ## Configuration
+  ## Setup
 
-      # config/config.exs
-      config :chrona,
-        pool_size: 4,           # number of warm Chrome instances (default: 2)
-        chrome_path: "/usr/bin/chromium"  # auto-detected if omitted
+  Add `Chrona.BrowserPool` to your application's supervision tree:
+
+      children = [
+        {Chrona.BrowserPool, pool_size: 4, chrome_path: "/usr/bin/chromium"}
+      ]
   """
 
   alias Chrona.BrowserPool

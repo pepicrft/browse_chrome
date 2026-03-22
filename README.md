@@ -55,14 +55,20 @@ end)
 - `Chrona.CDP` - WebSocket client for the Chrome DevTools Protocol
 - `Chrona.BrowserPool` - NimblePool for warm Chrome instances
 
-## ⚙️ Configuration
+## ⚙️ Setup
+
+Add `Chrona.BrowserPool` to your application's supervision tree:
 
 ```elixir
-# config/config.exs
-config :chrona,
-  pool_size: 4,                       # number of warm Chrome instances (default: 2)
-  chrome_path: "/usr/bin/chromium"     # auto-detected if omitted
+# lib/my_app/application.ex
+children = [
+  {Chrona.BrowserPool, pool_size: 4, chrome_path: "/usr/bin/chromium"}
+]
 ```
+
+Options:
+- `:pool_size` - number of warm Chrome instances (default: `2`)
+- `:chrome_path` - path to Chrome/Chromium binary (auto-detected if omitted)
 
 ## 📡 Telemetry
 
