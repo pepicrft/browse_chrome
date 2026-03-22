@@ -1,6 +1,12 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
+## [0.2.0] - 2026-03-22
+
+### Features
+
+- feat: add managed CDP sessions and generic commands (#3)
+
 ## [0.1.1] - 2026-03-22
 
 ### Changes
