@@ -1,19 +1,19 @@
-defmodule Chrona.CDPTest do
+defmodule BrowseChrome.CDPTest do
   use ExUnit.Case, async: true
 
   setup do
-    pool = :"chrona_pool_#{System.unique_integer([:positive])}"
-    start_supervised!({Chrona.BrowserPool, name: pool, pool_size: 1})
+    pool = :"browse_chrome_pool_#{System.unique_integer([:positive])}"
+    start_supervised!({BrowseChrome.BrowserPool, name: pool, pool_size: 1})
     {:ok, pool: pool}
   end
 
   describe "with_session/2" do
     test "disconnects automatically after the callback returns", %{pool: pool} do
       result =
-        Chrona.checkout(pool, fn browser ->
+        BrowseChrome.checkout(pool, fn browser ->
           result =
-            with {:ok, ws_url} <- Chrona.Chrome.ws_url(browser) do
-              Chrona.CDP.with_session(ws_url, fn cdp ->
+            with {:ok, ws_url} <- BrowseChrome.Chrome.ws_url(browser) do
+              BrowseChrome.CDP.with_session(ws_url, fn cdp ->
                 assert is_pid(cdp)
                 {:ok, cdp}
               end)
@@ -29,9 +29,9 @@ defmodule Chrona.CDPTest do
 
     test "disconnects automatically when the callback raises", %{pool: pool} do
       assert_raise RuntimeError, "boom", fn ->
-        Chrona.checkout(pool, fn browser ->
-          with {:ok, ws_url} <- Chrona.Chrome.ws_url(browser) do
-            Chrona.CDP.with_session(ws_url, fn cdp ->
+        BrowseChrome.checkout(pool, fn browser ->
+          with {:ok, ws_url} <- BrowseChrome.Chrome.ws_url(browser) do
+            BrowseChrome.CDP.with_session(ws_url, fn cdp ->
               send(self(), {:cdp_pid, cdp})
               raise "boom"
             end)
@@ -47,11 +47,11 @@ defmodule Chrona.CDPTest do
 
   describe "connect/1 and disconnect/1" do
     test "connects to and disconnects from a browser's CDP endpoint", %{pool: pool} do
-      Chrona.checkout(pool, fn browser ->
-        assert {:ok, ws_url} = Chrona.Chrome.ws_url(browser)
-        assert {:ok, cdp} = Chrona.CDP.connect(ws_url)
+      BrowseChrome.checkout(pool, fn browser ->
+        assert {:ok, ws_url} = BrowseChrome.Chrome.ws_url(browser)
+        assert {:ok, cdp} = BrowseChrome.CDP.connect(ws_url)
         assert is_pid(cdp)
-        assert :ok = Chrona.CDP.disconnect(cdp)
+        assert :ok = BrowseChrome.CDP.disconnect(cdp)
 
         {:ok, :ok}
       end)
@@ -60,11 +60,11 @@ defmodule Chrona.CDPTest do
 
   describe "command/3" do
     test "sends arbitrary CDP methods", %{pool: pool} do
-      Chrona.checkout(pool, fn browser ->
+      BrowseChrome.checkout(pool, fn browser ->
         assert {:ok, %{"product" => product}} =
-                 (with {:ok, ws_url} <- Chrona.Chrome.ws_url(browser) do
-                    Chrona.CDP.with_session(ws_url, fn cdp ->
-                      Chrona.CDP.command(cdp, "Browser.getVersion")
+                 (with {:ok, ws_url} <- BrowseChrome.Chrome.ws_url(browser) do
+                    BrowseChrome.CDP.with_session(ws_url, fn cdp ->
+                      BrowseChrome.CDP.command(cdp, "Browser.getVersion")
                     end)
                   end)
 
@@ -80,11 +80,11 @@ defmodule Chrona.CDPTest do
       html_path = Path.join(tmp_dir, "test.html")
       File.write!(html_path, "<html><body><h1>Test</h1></body></html>")
 
-      Chrona.checkout(pool, fn browser ->
+      BrowseChrome.checkout(pool, fn browser ->
         assert :ok =
-                 (with {:ok, ws_url} <- Chrona.Chrome.ws_url(browser) do
-                    Chrona.CDP.with_session(ws_url, fn cdp ->
-                      Chrona.CDP.navigate(cdp, "file://#{html_path}")
+                 (with {:ok, ws_url} <- BrowseChrome.Chrome.ws_url(browser) do
+                    BrowseChrome.CDP.with_session(ws_url, fn cdp ->
+                      BrowseChrome.CDP.navigate(cdp, "file://#{html_path}")
                     end)
                   end)
 
@@ -99,13 +99,13 @@ defmodule Chrona.CDPTest do
       html_path = Path.join(tmp_dir, "screenshot.html")
       File.write!(html_path, "<html><body style='background: red;'><h1>Screenshot</h1></body></html>")
 
-      Chrona.checkout(pool, fn browser ->
+      BrowseChrome.checkout(pool, fn browser ->
         assert {:ok, base64_data} =
-                 (with {:ok, ws_url} <- Chrona.Chrome.ws_url(browser) do
-                    Chrona.CDP.with_session(ws_url, fn cdp ->
-                      :ok = Chrona.CDP.set_device_metrics(cdp, 800, 600)
-                      :ok = Chrona.CDP.navigate(cdp, "file://#{html_path}")
-                      Chrona.CDP.capture_screenshot(cdp, "jpeg", 80)
+                 (with {:ok, ws_url} <- BrowseChrome.Chrome.ws_url(browser) do
+                    BrowseChrome.CDP.with_session(ws_url, fn cdp ->
+                      :ok = BrowseChrome.CDP.set_device_metrics(cdp, 800, 600)
+                      :ok = BrowseChrome.CDP.navigate(cdp, "file://#{html_path}")
+                      BrowseChrome.CDP.capture_screenshot(cdp, "jpeg", 80)
                     end)
                   end)
 

@@ -1,7 +1,7 @@
-defmodule Chrona.Telemetry do
+defmodule BrowseChrome.Telemetry do
   @moduledoc false
 
-  @prefix [:chrona]
+  @prefix [:browse_chrome]
 
   def span(event, metadata, fun, stop_metadata_fun \\ fn _result -> %{} end)
       when is_list(event) and is_map(metadata) and is_function(fun, 0) and is_function(stop_metadata_fun, 1) do

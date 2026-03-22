@@ -1,4 +1,4 @@
-defmodule Chrona.CDP do
+defmodule BrowseChrome.CDP do
   @moduledoc """
   A minimal Chrome DevTools Protocol client over WebSocket.
 
@@ -8,7 +8,7 @@ defmodule Chrona.CDP do
 
   use WebSockex
 
-  alias Chrona.Telemetry
+  alias BrowseChrome.Telemetry
 
   defstruct [:ws_pid, id: 1, pending: %{}]
 

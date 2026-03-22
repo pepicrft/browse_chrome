@@ -1,20 +1,20 @@
-defmodule Chrona.TelemetryTest do
+defmodule BrowseChrome.TelemetryTest do
   use ExUnit.Case, async: false
 
   setup do
-    pool = :"chrona_pool_#{System.unique_integer([:positive])}"
-    start_supervised!({Chrona.BrowserPool, name: pool, pool_size: 1})
-    handler_id = "chrona-test-#{System.unique_integer([:positive])}"
+    pool = :"browse_chrome_pool_#{System.unique_integer([:positive])}"
+    start_supervised!({BrowseChrome.BrowserPool, name: pool, pool_size: 1})
+    handler_id = "browse_chrome-test-#{System.unique_integer([:positive])}"
 
     :telemetry.attach_many(
       handler_id,
       [
-        [:chrona, :checkout, :start],
-        [:chrona, :checkout, :stop],
-        [:chrona, :browser, :capture, :start],
-        [:chrona, :browser, :capture, :stop],
-        [:chrona, :cdp, :command, :start],
-        [:chrona, :cdp, :command, :stop]
+        [:browse_chrome, :checkout, :start],
+        [:browse_chrome, :checkout, :stop],
+        [:browse_chrome, :browser, :capture, :start],
+        [:browse_chrome, :browser, :capture, :stop],
+        [:browse_chrome, :cdp, :command, :start],
+        [:browse_chrome, :cdp, :command, :stop]
       ],
       &__MODULE__.handle_event/4,
       self()
@@ -30,18 +30,18 @@ defmodule Chrona.TelemetryTest do
 
   test "checkout emits telemetry events", %{pool: pool} do
     assert :ok =
-             Chrona.checkout(pool, fn browser ->
+             BrowseChrome.checkout(pool, fn browser ->
                assert is_pid(browser)
                {:ok, :ok}
              end)
 
-    assert_receive {:telemetry_event, [:chrona, :checkout, :start], %{system_time: system_time},
+    assert_receive {:telemetry_event, [:browse_chrome, :checkout, :start], %{system_time: system_time},
                     %{pool: ^pool, timeout: 30_000}},
                    1_000
 
     assert is_integer(system_time)
 
-    assert_receive {:telemetry_event, [:chrona, :checkout, :stop], %{duration: duration},
+    assert_receive {:telemetry_event, [:browse_chrome, :checkout, :stop], %{duration: duration},
                     %{pool: ^pool, timeout: 30_000}},
                    1_000
 
@@ -53,29 +53,29 @@ defmodule Chrona.TelemetryTest do
     html = "<html><body><h1>Hello telemetry</h1></body></html>"
 
     assert {:ok, jpeg_binary} =
-             Chrona.checkout(pool, fn browser ->
-               result = Chrona.Chrome.capture(browser, html, width: 800, height: 600, quality: 85)
+             BrowseChrome.checkout(pool, fn browser ->
+               result = BrowseChrome.Chrome.capture(browser, html, width: 800, height: 600, quality: 85)
                {result, :ok}
              end)
 
     assert <<0xFF, 0xD8, 0xFF, _rest::binary>> = jpeg_binary
 
-    assert_receive {:telemetry_event, [:chrona, :browser, :capture, :start], %{system_time: _},
+    assert_receive {:telemetry_event, [:browse_chrome, :browser, :capture, :start], %{system_time: _},
                     %{width: 800, height: 600, quality: 85}},
                    1_000
 
-    assert_receive {:telemetry_event, [:chrona, :cdp, :command, :start], %{system_time: _},
+    assert_receive {:telemetry_event, [:browse_chrome, :cdp, :command, :start], %{system_time: _},
                     %{method: "Emulation.setDeviceMetricsOverride"}},
                    1_000
 
-    assert_receive {:telemetry_event, [:chrona, :cdp, :command, :stop], %{duration: duration},
+    assert_receive {:telemetry_event, [:browse_chrome, :cdp, :command, :stop], %{duration: duration},
                     %{method: "Emulation.setDeviceMetricsOverride", status: :ok}},
                    1_000
 
     assert is_integer(duration)
     assert duration > 0
 
-    assert_receive {:telemetry_event, [:chrona, :browser, :capture, :stop], %{duration: capture_duration},
+    assert_receive {:telemetry_event, [:browse_chrome, :browser, :capture, :stop], %{duration: capture_duration},
                     %{width: 800, height: 600, quality: 85, status: :ok}},
                    1_000
 

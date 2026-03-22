@@ -1,10 +1,10 @@
-defmodule Chrona.Browser do
+defmodule BrowseChrome.Browser do
   @moduledoc false
 
   @behaviour Browse.Browser
 
-  alias Chrona.CDP
-  alias Chrona.Chrome
+  alias BrowseChrome.CDP
+  alias BrowseChrome.Chrome
 
   @impl Browse.Browser
   def init(opts) do

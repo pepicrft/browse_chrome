@@ -1,4 +1,4 @@
-defmodule Chrona.Chrome do
+defmodule BrowseChrome.Chrome do
   @moduledoc """
   A GenServer that manages a headless Chrome/Chromium instance.
 
@@ -8,8 +8,8 @@ defmodule Chrona.Chrome do
 
   use GenServer
 
-  alias Chrona.CDP
-  alias Chrona.Telemetry
+  alias BrowseChrome.CDP
+  alias BrowseChrome.Telemetry
 
   # Client API
 

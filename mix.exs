@@ -1,19 +1,19 @@
-defmodule Chrona.MixProject do
+defmodule BrowseChrome.MixProject do
   use Mix.Project
 
   @version "0.2.3"
-  @source_url "https://github.com/pepicrft/chrona"
+  @source_url "https://github.com/pepicrft/browse_chrome"
 
   def project do
     [
-      app: :chrona,
+      app: :browse_chrome,
       version: @version,
       elixir: "~> 1.18",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       docs: docs(),
       package: package(),
-      name: "Chrona",
+      name: "BrowseChrome",
       description: "Manage headless Chrome instances via the Chrome DevTools Protocol",
       source_url: @source_url,
       elixirc_paths: elixirc_paths(Mix.env()),
@@ -57,7 +57,7 @@ defmodule Chrona.MixProject do
 
   defp docs do
     [
-      main: "Chrona",
+      main: "BrowseChrome",
       extras: ["README.md"],
       source_ref: @version,
       source_url: @source_url

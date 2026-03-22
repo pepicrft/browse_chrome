@@ -1,38 +1,38 @@
-# 🌐 Chrona
+# 🌐 BrowseChrome
 
-[![Hex.pm](https://img.shields.io/hexpm/v/chrona.svg)](https://hex.pm/packages/chrona)
-[![Hex Docs](https://img.shields.io/badge/hex-docs-blue.svg)](https://hexdocs.pm/chrona)
-[![CI](https://github.com/pepicrft/chrona/actions/workflows/chrona.yml/badge.svg)](https://github.com/pepicrft/chrona/actions/workflows/chrona.yml)
+[![Hex.pm](https://img.shields.io/hexpm/v/browse_chrome.svg)](https://hex.pm/packages/browse_chrome)
+[![Hex Docs](https://img.shields.io/badge/hex-docs-blue.svg)](https://hexdocs.pm/browse_chrome)
+[![CI](https://github.com/pepicrft/browse_chrome/actions/workflows/browse_chrome.yml/badge.svg)](https://github.com/pepicrft/browse_chrome/actions/workflows/browse_chrome.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 Manage headless Chrome instances via the Chrome DevTools Protocol.
 
-Chrona provides a pool of warm headless Chrome/Chromium instances managed through a supervision tree, ready for use via the Chrome DevTools Protocol. It handles Chrome lifecycle and CDP WebSocket communication directly, and now delegates shared browser interface and pool runtime responsibilities to [`Browse`](https://hex.pm/packages/browse).
+BrowseChrome provides a pool of warm headless Chrome/Chromium instances managed through a supervision tree, ready for use via the Chrome DevTools Protocol. It handles Chrome lifecycle and CDP WebSocket communication directly, and now delegates shared browser interface and pool runtime responsibilities to [`Browse`](https://hex.pm/packages/browse).
 
-`Browse` is an internal implementation detail. Configure Chrona through `:chrona`; Chrona passes the relevant pool options down to `Browse` under the hood.
+`Browse` is an internal implementation detail. Configure BrowseChrome through `:browse_chrome`; BrowseChrome passes the relevant pool options down to `Browse` under the hood.
 
 ## 📦 Installation
 
-Add `chrona` to your list of dependencies in `mix.exs`:
+Add `browse_chrome` to your list of dependencies in `mix.exs`:
 
 ```elixir
 def deps do
   [
-    {:chrona, "~> 0.1.0"}
+    {:browse_chrome, "~> 0.1.0"}
   ]
 end
 ```
 
-Chrona requires Chrome or Chromium to be installed on the system. It will auto-detect common installation paths, or you can configure it explicitly.
+BrowseChrome requires Chrome or Chromium to be installed on the system. It will auto-detect common installation paths, or you can configure it explicitly.
 
 ## 🚀 Usage
 
 ### Add a pool to your supervision tree
 
-Configure pools through Chrona:
+Configure pools through BrowseChrome:
 
 ```elixir
-config :chrona,
+config :browse_chrome,
   default_pool: MyApp.ChromaPool,
   pools: [
     MyApp.ChromaPool: [pool_size: 4, chrome_path: "/usr/bin/chromium"]
@@ -43,7 +43,7 @@ Then add the configured pools to your supervision tree:
 
 ```elixir
 # lib/my_app/application.ex
-children = Chrona.children()
+children = BrowseChrome.children()
 ```
 
 Or start a pool directly:
@@ -51,25 +51,25 @@ Or start a pool directly:
 ```elixir
 # lib/my_app/application.ex
 children = [
-  {Chrona.BrowserPool,
+  {BrowseChrome.BrowserPool,
    name: MyApp.ChromaPool,
    pool_size: 4,
    chrome_path: "/usr/bin/chromium"}
 ]
 ```
 
-Chrona does not start a pool for you. The consumer owns pool supervision and decides how many pools to run, how they are named, and where they live in the supervision tree. `Chrona.BrowserPool` remains the Chrona-facing compatibility wrapper, backed internally by `Browse`, but its configuration now lives under `:chrona`.
+BrowseChrome does not start a pool for you. The consumer owns pool supervision and decides how many pools to run, how they are named, and where they live in the supervision tree. `BrowseChrome.BrowserPool` remains the BrowseChrome-facing compatibility wrapper, backed internally by `Browse`, but its configuration now lives under `:browse_chrome`.
 
 ### Check out a browser from a pool
 
 ```elixir
-Chrona.checkout(MyApp.ChromaPool, fn browser ->
-  # Use Chrona.CDP to interact with the browser
+BrowseChrome.checkout(MyApp.ChromaPool, fn browser ->
+  # Use BrowseChrome.CDP to interact with the browser
   result =
-    with {:ok, ws_url} <- Chrona.Chrome.ws_url(browser) do
-      Chrona.CDP.with_session(ws_url, fn cdp ->
-        :ok = Chrona.CDP.navigate(cdp, "https://example.com")
-        {:ok, screenshot_data} = Chrona.CDP.capture_screenshot(cdp, "jpeg", 90)
+    with {:ok, ws_url} <- BrowseChrome.Chrome.ws_url(browser) do
+      BrowseChrome.CDP.with_session(ws_url, fn cdp ->
+        :ok = BrowseChrome.CDP.navigate(cdp, "https://example.com")
+        {:ok, screenshot_data} = BrowseChrome.CDP.capture_screenshot(cdp, "jpeg", 90)
         {:ok, Base.decode64!(screenshot_data)}
       end)
     end
@@ -78,12 +78,12 @@ Chrona.checkout(MyApp.ChromaPool, fn browser ->
 end)
 ```
 
-`Chrona.CDP.with_session/2` is the recommended API. It guarantees the WebSocket is disconnected even if your callback raises or returns early.
+`BrowseChrome.CDP.with_session/2` is the recommended API. It guarantees the WebSocket is disconnected even if your callback raises or returns early.
 
 If you configured `default_pool`, you can omit the pool name:
 
 ```elixir
-Chrona.checkout(fn browser ->
+BrowseChrome.checkout(fn browser ->
   {:ok, browser}
 end)
 ```
@@ -91,30 +91,30 @@ end)
 ### Direct browser management
 
 ```elixir
-{:ok, browser} = Chrona.Chrome.start_link()
+{:ok, browser} = BrowseChrome.Chrome.start_link()
 
-{:ok, jpeg_binary} = Chrona.Chrome.capture(browser, "<h1>Hello!</h1>", width: 1200, height: 630, quality: 90)
+{:ok, jpeg_binary} = BrowseChrome.Chrome.capture(browser, "<h1>Hello!</h1>", width: 1200, height: 630, quality: 90)
 ```
 
 ### Modules
 
-- `Chrona.Chrome` - GenServer managing a single headless Chrome instance
-- `Chrona.CDP` - WebSocket client for the Chrome DevTools Protocol
-- `Chrona.Browser` - `Browse.Browser` adapter built on Chrona's Chrome worker
-- `Chrona.BrowserPool` - Chrona-facing pool wrapper backed by `Browse`
+- `BrowseChrome.Chrome` - GenServer managing a single headless Chrome instance
+- `BrowseChrome.CDP` - WebSocket client for the Chrome DevTools Protocol
+- `BrowseChrome.Browser` - `Browse.Browser` adapter built on BrowseChrome's Chrome worker
+- `BrowseChrome.BrowserPool` - BrowseChrome-facing pool wrapper backed by `Browse`
 
 ### Use the full CDP surface
 
 The convenience helpers cover common tasks like navigation, viewport setup, and screenshots, but Chrome exposes many more methods than those wrappers.
 
-Use `Chrona.CDP.command/3` to call any CDP method directly:
+Use `BrowseChrome.CDP.command/3` to call any CDP method directly:
 
 ```elixir
-Chrona.checkout(MyApp.ChromaPool, fn browser ->
+BrowseChrome.checkout(MyApp.ChromaPool, fn browser ->
   result =
-    with {:ok, ws_url} <- Chrona.Chrome.ws_url(browser) do
-      Chrona.CDP.with_session(ws_url, fn cdp ->
-        {:ok, version} = Chrona.CDP.command(cdp, "Browser.getVersion")
+    with {:ok, ws_url} <- BrowseChrome.Chrome.ws_url(browser) do
+      BrowseChrome.CDP.with_session(ws_url, fn cdp ->
+        {:ok, version} = BrowseChrome.CDP.command(cdp, "Browser.getVersion")
         {:ok, version}
       end)
     end
@@ -125,12 +125,12 @@ end)
 
 ## ⚙️ Setup
 
-Add `Chrona.BrowserPool` to your application's supervision tree:
+Add `BrowseChrome.BrowserPool` to your application's supervision tree:
 
 ```elixir
 # lib/my_app/application.ex
 children = [
-  {Chrona.BrowserPool,
+  {BrowseChrome.BrowserPool,
    name: MyApp.ChromaPool,
    pool_size: 4,
    chrome_path: "/usr/bin/chromium"}
@@ -142,39 +142,39 @@ Options:
 - `:pool_size` - number of warm Chrome instances (default: `2`)
 - `:chrome_path` - path to Chrome/Chromium binary (auto-detected if omitted)
 
-The `:chrona, :pools` entries accept the same pool options Chrona passes down to `Browse`, while keeping the `Browse` implementation module internal.
+The `:browse_chrome, :pools` entries accept the same pool options BrowseChrome passes down to `Browse`, while keeping the `Browse` implementation module internal.
 
-Then pass the pool name or pid to `Chrona.checkout/3`, or use `Chrona.checkout/1` with `:default_pool` configured:
+Then pass the pool name or pid to `BrowseChrome.checkout/3`, or use `BrowseChrome.checkout/1` with `:default_pool` configured:
 
 ```elixir
-Chrona.checkout(MyApp.ChromaPool, fn browser ->
+BrowseChrome.checkout(MyApp.ChromaPool, fn browser ->
   {:ok, :done}
 end)
 ```
 
 ## 📡 Telemetry
 
-Chrona emits [Telemetry](https://hexdocs.pm/telemetry) events for its main lifecycle operations:
+BrowseChrome emits [Telemetry](https://hexdocs.pm/telemetry) events for its main lifecycle operations:
 
-- `[:chrona, :checkout, :start | :stop | :exception]`
-- `[:chrona, :browser, :init, :start | :stop | :exception]`
-- `[:chrona, :browser, :capture, :start | :stop | :exception]`
-- `[:chrona, :cdp, :connect, :start | :stop | :exception]`
-- `[:chrona, :cdp, :disconnect, :start | :stop | :exception]`
-- `[:chrona, :cdp, :command, :start | :stop | :exception]`
+- `[:browse_chrome, :checkout, :start | :stop | :exception]`
+- `[:browse_chrome, :browser, :init, :start | :stop | :exception]`
+- `[:browse_chrome, :browser, :capture, :start | :stop | :exception]`
+- `[:browse_chrome, :cdp, :connect, :start | :stop | :exception]`
+- `[:browse_chrome, :cdp, :disconnect, :start | :stop | :exception]`
+- `[:browse_chrome, :cdp, :command, :start | :stop | :exception]`
 
 Stop and exception events include a `:duration` measurement in native time units. CDP command events include the `:method` metadata field, and browser capture events include `:width`, `:height`, and `:quality`.
 
 ```elixir
 :telemetry.attach_many(
-  "chrona-logger",
+  "browse_chrome-logger",
   [
-    [:chrona, :checkout, :stop],
-    [:chrona, :browser, :capture, :stop],
-    [:chrona, :cdp, :command, :stop]
+    [:browse_chrome, :checkout, :stop],
+    [:browse_chrome, :browser, :capture, :stop],
+    [:browse_chrome, :cdp, :command, :stop]
   ],
   fn event, measurements, metadata, _config ->
-    IO.inspect({event, measurements, metadata}, label: "chrona.telemetry")
+    IO.inspect({event, measurements, metadata}, label: "browse_chrome.telemetry")
   end,
   nil
 )

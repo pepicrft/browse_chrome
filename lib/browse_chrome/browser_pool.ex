@@ -1,10 +1,10 @@
-defmodule Chrona.BrowserPool do
+defmodule BrowseChrome.BrowserPool do
   @moduledoc """
-  Compatibility wrapper around `Browse` for pools of warm `Chrona.Chrome` workers.
+  Compatibility wrapper around `Browse` for pools of warm `BrowseChrome.Chrome` workers.
   """
   alias Browse
-  alias Chrona
-  alias Chrona.Browser
+  alias BrowseChrome
+  alias BrowseChrome.Browser
 
   def child_spec(pool) when not is_list(pool) do
     child_spec(pool, [])
@@ -47,7 +47,7 @@ defmodule Chrona.BrowserPool do
 
   defp pool_opts(pool, opts) do
     configured_opts =
-      Chrona.configured_pools()
+      BrowseChrome.configured_pools()
       |> Keyword.get(pool, [])
 
     configured_opts

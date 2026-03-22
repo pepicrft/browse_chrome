@@ -1,8 +1,8 @@
-defmodule Chrona do
+defmodule BrowseChrome do
   @moduledoc """
   Manage headless Chrome instances via the Chrome DevTools Protocol.
 
-  Chrona provides a pool of warm headless Chrome/Chromium browser instances,
+  BrowseChrome provides a pool of warm headless Chrome/Chromium browser instances,
   managed through a supervision tree. Each browser is ready to accept commands
   via the Chrome DevTools Protocol without cold-start overhead, with pool and
   browser lifecycle integration delegated to `Browse`.
@@ -10,12 +10,12 @@ defmodule Chrona do
   ## Usage
 
       # Check out a browser from the pool
-      Chrona.checkout(MyApp.ChromaPool, fn browser ->
+      BrowseChrome.checkout(MyApp.ChromaPool, fn browser ->
         result =
-          with {:ok, ws_url} <- Chrona.Chrome.ws_url(browser) do
-            Chrona.CDP.with_session(ws_url, fn cdp ->
-              :ok = Chrona.CDP.navigate(cdp, "https://example.com")
-              {:ok, data} = Chrona.CDP.capture_screenshot(cdp, "jpeg", 90)
+          with {:ok, ws_url} <- BrowseChrome.Chrome.ws_url(browser) do
+            BrowseChrome.CDP.with_session(ws_url, fn cdp ->
+              :ok = BrowseChrome.CDP.navigate(cdp, "https://example.com")
+              {:ok, data} = BrowseChrome.CDP.capture_screenshot(cdp, "jpeg", 90)
               {:ok, Base.decode64!(data)}
             end)
           end
@@ -25,9 +25,9 @@ defmodule Chrona do
 
   ## Setup
 
-  Configure Chrona-managed pools under `:chrona`:
+  Configure BrowseChrome-managed pools under `:browse_chrome`:
 
-      config :chrona,
+      config :browse_chrome,
         default_pool: MyApp.ChromaPool,
         pools: [
           MyApp.ChromaPool: [pool_size: 4, chrome_path: "/usr/bin/chromium"]
@@ -35,24 +35,24 @@ defmodule Chrona do
 
   Then add the configured pools to your supervision tree:
 
-      children = Chrona.children()
+      children = BrowseChrome.children()
 
-  You can also add `Chrona.BrowserPool` directly to your application's
+  You can also add `BrowseChrome.BrowserPool` directly to your application's
   supervision tree:
 
       children = [
-        {Chrona.BrowserPool,
+        {BrowseChrome.BrowserPool,
          name: MyApp.ChromaPool,
          pool_size: 4,
          chrome_path: "/usr/bin/chromium"}
       ]
   """
 
-  alias Chrona.BrowserPool
-  alias Chrona.Telemetry
+  alias BrowseChrome.BrowserPool
+  alias BrowseChrome.Telemetry
 
   @doc """
-  Builds child specs from pools configured under `:chrona`.
+  Builds child specs from pools configured under `:browse_chrome`.
   """
   @spec children() :: [Supervisor.child_spec()]
   def children do
@@ -93,8 +93,8 @@ defmodule Chrona do
 
   ## Examples
 
-      Chrona.checkout(MyApp.ChromaPool, fn browser ->
-        case Chrona.Chrome.capture(browser, html, opts) do
+      BrowseChrome.checkout(MyApp.ChromaPool, fn browser ->
+        case BrowseChrome.Chrome.capture(browser, html, opts) do
           {:ok, _} = ok -> {ok, :ok}
           {:error, _} = error -> {error, :remove}
         end
@@ -115,11 +115,11 @@ defmodule Chrona do
 
   @spec default_pool!() :: NimblePool.pool()
   def default_pool! do
-    Application.fetch_env!(:chrona, :default_pool)
+    Application.fetch_env!(:browse_chrome, :default_pool)
   end
 
   @spec configured_pools() :: keyword()
   def configured_pools do
-    Application.get_env(:chrona, :pools, [])
+    Application.get_env(:browse_chrome, :pools, [])
   end
 end
