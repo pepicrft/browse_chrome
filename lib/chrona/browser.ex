@@ -1,0 +1,171 @@
+defmodule Chrona.Browser do
+  @moduledoc """
+  A GenServer that manages a headless Chrome/Chromium instance.
+
+  Each Browser process owns a single Chrome process and its CDP WebSocket URL.
+  Screenshots are taken via `capture/3` which is a synchronous GenServer call.
+  """
+
+  use GenServer
+
+  alias Chrona.CDP
+
+  # Client API
+
+  @doc """
+  Starts a Browser process that launches a headless Chrome instance.
+  """
+  def start_link(opts \\ []) do
+    GenServer.start_link(__MODULE__, opts)
+  end
+
+  @doc """
+  Captures a screenshot of the given HTML content as a JPEG binary.
+  """
+  @spec capture(pid(), String.t(), keyword()) :: {:ok, binary()} | {:error, term()}
+  def capture(browser, html, opts) do
+    GenServer.call(browser, {:capture, html, opts}, 30_000)
+  end
+
+  # GenServer Callbacks
+
+  @impl GenServer
+  def init(opts) do
+    chrome_path = Keyword.get(opts, :chrome_path) || find_chrome()
+
+    if is_nil(chrome_path) do
+      {:stop, :chrome_not_found}
+    else
+      port = find_available_port()
+      {:ok, user_data_dir} = Briefly.create(directory: true)
+
+      args = [
+        "--headless=new",
+        "--disable-gpu",
+        "--no-sandbox",
+        "--disable-dev-shm-usage",
+        "--hide-scrollbars",
+        "--remote-debugging-port=#{port}",
+        "--user-data-dir=#{user_data_dir}",
+        "about:blank"
+      ]
+
+      chrome_pid =
+        spawn_link(fn ->
+          MuonTrap.cmd(chrome_path, args, stderr_to_stdout: true)
+        end)
+
+      case wait_for_devtools(port) do
+        {:ok, ws_url} ->
+          {:ok, %{chrome_pid: chrome_pid, ws_url: ws_url}}
+
+        {:error, reason} ->
+          {:stop, reason}
+      end
+    end
+  end
+
+  @impl GenServer
+  def handle_call({:capture, html, opts}, _from, state) do
+    width = Keyword.fetch!(opts, :width)
+    height = Keyword.fetch!(opts, :height)
+    quality = Keyword.fetch!(opts, :quality)
+
+    {:ok, html_path} = Briefly.create(extname: ".html")
+    File.write!(html_path, html)
+    file_url = "file://#{html_path}"
+
+    result = take_screenshot(state.ws_url, file_url, width, height, quality)
+    {:reply, result, state}
+  end
+
+  @impl GenServer
+  def terminate(_reason, %{chrome_pid: chrome_pid}) do
+    Process.exit(chrome_pid, :kill)
+    :ok
+  end
+
+  def terminate(_reason, _state), do: :ok
+
+  # Private
+
+  defp take_screenshot(ws_url, file_url, width, height, quality) do
+    with {:ok, cdp} <- CDP.connect(ws_url),
+         :ok <- CDP.set_device_metrics(cdp, width, height),
+         :ok <- CDP.navigate(cdp, file_url),
+         {:ok, data} <- CDP.capture_screenshot(cdp, "jpeg", quality) do
+      CDP.disconnect(cdp)
+      {:ok, Base.decode64!(data)}
+    end
+  end
+
+  defp find_chrome do
+    paths =
+      case :os.type() do
+        {:unix, :darwin} ->
+          [
+            "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+            "/Applications/Chromium.app/Contents/MacOS/Chromium",
+            "/Applications/Google Chrome Canary.app/Contents/MacOS/Google Chrome Canary"
+          ]
+
+        {:unix, _} ->
+          [
+            "google-chrome",
+            "google-chrome-stable",
+            "chromium",
+            "chromium-browser"
+          ]
+
+        {:win32, _} ->
+          [
+            "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+            "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe"
+          ]
+      end
+
+    Enum.find(paths, fn path ->
+      case System.find_executable(path) do
+        nil -> File.exists?(path)
+        _ -> true
+      end
+    end)
+  end
+
+  defp find_available_port do
+    {:ok, socket} = :gen_tcp.listen(0, reuseaddr: true)
+    {:ok, port} = :inet.port(socket)
+    :gen_tcp.close(socket)
+    port
+  end
+
+  defp wait_for_devtools(port, attempts \\ 50) do
+    wait_for_devtools(port, attempts, 0)
+  end
+
+  defp wait_for_devtools(_port, max_attempts, attempt) when attempt >= max_attempts do
+    {:error, :devtools_timeout}
+  end
+
+  defp wait_for_devtools(port, max_attempts, attempt) do
+    url = ~c"http://127.0.0.1:#{port}/json/list"
+
+    case :httpc.request(:get, {url, []}, [timeout: 1000], []) do
+      {:ok, {{_, 200, _}, _, body}} ->
+        targets = JSON.decode!(to_string(body))
+
+        case Enum.find(targets, &(&1["type"] == "page")) do
+          %{"webSocketDebuggerUrl" => ws_url} -> {:ok, ws_url}
+          _ -> retry_devtools(port, max_attempts, attempt)
+        end
+
+      _ ->
+        retry_devtools(port, max_attempts, attempt)
+    end
+  end
+
+  defp retry_devtools(port, max_attempts, attempt) do
+    Process.sleep(100)
+    wait_for_devtools(port, max_attempts, attempt + 1)
+  end
+end

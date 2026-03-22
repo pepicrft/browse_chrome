@@ -1,0 +1,134 @@
+name: Chrona
+
+on:
+  pull_request:
+  push:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  compile:
+    name: Compile without warnings
+    runs-on: ubuntu-latest
+    env:
+      MIX_ENV: test
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Install tooling with mise
+        uses: jdx/mise-action@v3
+        with:
+          cache: true
+
+      - name: Cache deps
+        uses: actions/cache@v4
+        with:
+          path: deps
+          key: deps-${{ runner.os }}-${{ hashFiles('mix.lock') }}
+
+      - name: Cache build
+        uses: actions/cache@v4
+        with:
+          path: _build
+          key: build-${{ runner.os }}-${{ github.head_ref || github.ref_name }}-${{ hashFiles('mix.lock') }}
+          restore-keys: |
+            build-${{ runner.os }}-${{ github.head_ref || github.ref_name }}-
+            build-${{ runner.os }}-main-
+
+      - name: Install Chromium
+        uses: browser-actions/setup-chrome@v1
+        with:
+          chrome-version: stable
+
+      - name: Fetch dependencies
+        run: mix deps.get
+
+      - name: Compile dependencies
+        run: mix deps.compile
+
+      - name: Compile without warnings
+        run: mix compile --warnings-as-errors
+
+  test:
+    name: Run tests
+    runs-on: ubuntu-latest
+    env:
+      MIX_ENV: test
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Install tooling with mise
+        uses: jdx/mise-action@v3
+        with:
+          cache: true
+
+      - name: Cache deps
+        uses: actions/cache@v4
+        with:
+          path: deps
+          key: deps-${{ runner.os }}-${{ hashFiles('mix.lock') }}
+
+      - name: Cache build
+        uses: actions/cache@v4
+        with:
+          path: _build
+          key: build-${{ runner.os }}-${{ github.head_ref || github.ref_name }}-${{ hashFiles('mix.lock') }}
+          restore-keys: |
+            build-${{ runner.os }}-${{ github.head_ref || github.ref_name }}-
+            build-${{ runner.os }}-main-
+
+      - name: Install Chromium
+        uses: browser-actions/setup-chrome@v1
+        with:
+          chrome-version: stable
+
+      - name: Fetch dependencies
+        run: mix deps.get
+
+      - name: Run test suite
+        run: mix test
+
+  format:
+    name: Check formatting
+    runs-on: ubuntu-latest
+    env:
+      MIX_ENV: test
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Install tooling with mise
+        uses: jdx/mise-action@v3
+        with:
+          cache: true
+
+      - name: Cache deps
+        uses: actions/cache@v4
+        with:
+          path: deps
+          key: deps-${{ runner.os }}-${{ hashFiles('mix.lock') }}
+
+      - name: Cache build
+        uses: actions/cache@v4
+        with:
+          path: _build
+          key: build-${{ runner.os }}-${{ github.head_ref || github.ref_name }}-${{ hashFiles('mix.lock') }}
+          restore-keys: |
+            build-${{ runner.os }}-${{ github.head_ref || github.ref_name }}-
+            build-${{ runner.os }}-main-
+
+      - name: Fetch dependencies
+        run: mix deps.get
+
+      - name: Compile formatter dependencies
+        run: mix deps.compile
+
+      - name: Check formatting
+        run: mix format --check-formatted

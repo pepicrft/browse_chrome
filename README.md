@@ -1,0 +1,64 @@
+# 🌐 Chrona
+
+Manage headless Chrome instances via the Chrome DevTools Protocol.
+
+Chrona provides a pool of warm headless Chrome/Chromium instances managed through a supervision tree, ready for use via the Chrome DevTools Protocol. It handles browser lifecycle, CDP WebSocket communication, and pool management so you can focus on what you want to do with the browser.
+
+## 📦 Installation
+
+Add `chrona` to your list of dependencies in `mix.exs`:
+
+```elixir
+def deps do
+  [
+    {:chrona, "~> 0.1.0"}
+  ]
+end
+```
+
+Chrona requires Chrome or Chromium to be installed on the system. It will auto-detect common installation paths, or you can configure it explicitly.
+
+## 🚀 Usage
+
+### Check out a browser from the pool
+
+```elixir
+Chrona.checkout(fn browser ->
+  # Use Chrona.CDP to interact with the browser
+  {:ok, cdp} = Chrona.CDP.connect(browser.ws_url)
+  :ok = Chrona.CDP.navigate(cdp, "https://example.com")
+  {:ok, screenshot_data} = Chrona.CDP.capture_screenshot(cdp, "jpeg", 90)
+  Chrona.CDP.disconnect(cdp)
+
+  {{:ok, Base.decode64!(screenshot_data)}, :ok}
+end)
+```
+
+### Direct browser management
+
+```elixir
+# Start a standalone browser instance
+{:ok, browser} = Chrona.Browser.start_link()
+
+# Capture a screenshot
+{:ok, jpeg_binary} = Chrona.Browser.capture(browser, "<h1>Hello!</h1>", width: 1200, height: 630, quality: 90)
+```
+
+### Modules
+
+- `Chrona.Browser` - GenServer managing a single headless Chrome instance
+- `Chrona.CDP` - WebSocket client for the Chrome DevTools Protocol
+- `Chrona.BrowserPool` - NimblePool for warm Chrome instances
+
+## ⚙️ Configuration
+
+```elixir
+# config/config.exs
+config :chrona,
+  pool_size: 4,                       # number of warm Chrome instances (default: 2)
+  chrome_path: "/usr/bin/chromium"     # auto-detected if omitted
+```
+
+## 📄 License
+
+MIT License. See [LICENSE](LICENSE) for details.
