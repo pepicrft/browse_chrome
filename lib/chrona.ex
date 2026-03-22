@@ -9,7 +9,7 @@ defmodule Chrona do
   ## Usage
 
       # Check out a browser from the pool
-      Chrona.checkout(fn browser ->
+      Chrona.checkout(MyApp.ChromaPool, fn browser ->
         {:ok, cdp} = Chrona.CDP.connect(browser.ws_url)
         :ok = Chrona.CDP.navigate(cdp, "https://example.com")
         {:ok, data} = Chrona.CDP.capture_screenshot(cdp, "jpeg", 90)
@@ -22,7 +22,10 @@ defmodule Chrona do
   Add `Chrona.BrowserPool` to your application's supervision tree:
 
       children = [
-        {Chrona.BrowserPool, pool_size: 4, chrome_path: "/usr/bin/chromium"}
+        {Chrona.BrowserPool,
+         name: MyApp.ChromaPool,
+         pool_size: 4,
+         chrome_path: "/usr/bin/chromium"}
       ]
   """
 
@@ -41,19 +44,23 @@ defmodule Chrona do
 
   ## Examples
 
-      Chrona.checkout(fn browser ->
+      Chrona.checkout(MyApp.ChromaPool, fn browser ->
         case Chrona.Browser.capture(browser, html, opts) do
           {:ok, _} = ok -> {ok, :ok}
           {:error, _} = error -> {error, :remove}
         end
       end)
   """
-  @spec checkout(fun :: (pid() -> {term(), :ok | :remove}), keyword()) :: term()
-  def checkout(fun, opts \\ []) do
+  @spec checkout(
+          NimblePool.pool(),
+          fun :: (pid() -> {term(), :ok | :remove}),
+          keyword()
+        ) :: term()
+  def checkout(pool, fun, opts \\ []) do
     timeout = Keyword.get(opts, :timeout, 30_000)
 
-    Telemetry.span([:checkout], %{timeout: timeout}, fn ->
-      BrowserPool.checkout(fun, timeout)
+    Telemetry.span([:checkout], %{pool: pool, timeout: timeout}, fn ->
+      BrowserPool.checkout(pool, fun, timeout)
     end)
   end
 end

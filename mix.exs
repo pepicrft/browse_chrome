@@ -23,8 +23,7 @@ defmodule Chrona.MixProject do
 
   def application do
     [
-      extra_applications: [:logger, :inets],
-      mod: {Chrona.Application, []}
+      extra_applications: [:logger, :inets]
     ]
   end
 

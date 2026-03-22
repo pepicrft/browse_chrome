@@ -2,6 +2,8 @@ defmodule Chrona.TelemetryTest do
   use ExUnit.Case, async: false
 
   setup do
+    pool = :"chrona_pool_#{System.unique_integer([:positive])}"
+    start_supervised!({Chrona.BrowserPool, name: pool, pool_size: 1})
     handler_id = "chrona-test-#{System.unique_integer([:positive])}"
 
     :telemetry.attach_many(
@@ -19,37 +21,39 @@ defmodule Chrona.TelemetryTest do
     )
 
     on_exit(fn -> :telemetry.detach(handler_id) end)
-    :ok
+    {:ok, pool: pool}
   end
 
   def handle_event(event, measurements, metadata, pid) do
     send(pid, {:telemetry_event, event, measurements, metadata})
   end
 
-  test "checkout emits telemetry events" do
+  test "checkout emits telemetry events", %{pool: pool} do
     assert :ok =
-             Chrona.checkout(fn browser ->
+             Chrona.checkout(pool, fn browser ->
                assert is_pid(browser)
                {:ok, :ok}
              end)
 
-    assert_receive {:telemetry_event, [:chrona, :checkout, :start], %{system_time: system_time}, %{timeout: 30_000}},
+    assert_receive {:telemetry_event, [:chrona, :checkout, :start], %{system_time: system_time},
+                    %{pool: ^pool, timeout: 30_000}},
                    1_000
 
     assert is_integer(system_time)
 
-    assert_receive {:telemetry_event, [:chrona, :checkout, :stop], %{duration: duration}, %{timeout: 30_000}},
+    assert_receive {:telemetry_event, [:chrona, :checkout, :stop], %{duration: duration},
+                    %{pool: ^pool, timeout: 30_000}},
                    1_000
 
     assert is_integer(duration)
     assert duration > 0
   end
 
-  test "browser capture and cdp command emit telemetry events" do
+  test "browser capture and cdp command emit telemetry events", %{pool: pool} do
     html = "<html><body><h1>Hello telemetry</h1></body></html>"
 
     assert {:ok, jpeg_binary} =
-             Chrona.checkout(fn browser ->
+             Chrona.checkout(pool, fn browser ->
                result = Chrona.Browser.capture(browser, html, width: 800, height: 600, quality: 85)
                {result, :ok}
              end)

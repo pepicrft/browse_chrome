@@ -1,10 +1,16 @@
 defmodule ChronaTest do
   use ExUnit.Case, async: true
 
-  describe "checkout/2" do
-    test "checks out a browser from the pool and runs the function" do
+  setup do
+    pool = :"chrona_pool_#{System.unique_integer([:positive])}"
+    start_supervised!({Chrona.BrowserPool, name: pool, pool_size: 1})
+    {:ok, pool: pool}
+  end
+
+  describe "checkout/3" do
+    test "checks out a browser from the pool and runs the function", %{pool: pool} do
       result =
-        Chrona.checkout(fn browser ->
+        Chrona.checkout(pool, fn browser ->
           assert is_pid(browser)
           {:ok, :ok}
         end)
@@ -12,7 +18,7 @@ defmodule ChronaTest do
       assert result == :ok
     end
 
-    test "captures a screenshot through checkout" do
+    test "captures a screenshot through checkout", %{pool: pool} do
       html = """
       <html>
         <body style="width: 1200px; height: 630px; background: #667eea;">
@@ -22,7 +28,7 @@ defmodule ChronaTest do
       """
 
       result =
-        Chrona.checkout(fn browser ->
+        Chrona.checkout(pool, fn browser ->
           case Chrona.Browser.capture(browser, html, width: 1200, height: 630, quality: 90) do
             {:ok, _} = ok -> {ok, :ok}
             {:error, _} = error -> {error, :remove}
