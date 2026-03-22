@@ -1,5 +1,10 @@
 # 🌐 Chrona
 
+[![Hex.pm](https://img.shields.io/hexpm/v/chrona.svg)](https://hex.pm/packages/chrona)
+[![Hex Docs](https://img.shields.io/badge/hex-docs-blue.svg)](https://hexdocs.pm/chrona)
+[![CI](https://github.com/pepicrft/chrona/actions/workflows/chrona.yml/badge.svg)](https://github.com/pepicrft/chrona/actions/workflows/chrona.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 Manage headless Chrome instances via the Chrome DevTools Protocol.
 
 Chrona provides a pool of warm headless Chrome/Chromium instances managed through a supervision tree, ready for use via the Chrome DevTools Protocol. It handles browser lifecycle, CDP WebSocket communication, and pool management so you can focus on what you want to do with the browser.
