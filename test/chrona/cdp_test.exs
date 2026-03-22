@@ -1,8 +1,6 @@
 defmodule Chrona.CDPTest do
   use ExUnit.Case, async: true
 
-  @tag :tmp_dir
-
   describe "connect/1 and disconnect/1" do
     test "connects to and disconnects from a browser's CDP endpoint" do
       Chrona.checkout(fn browser ->

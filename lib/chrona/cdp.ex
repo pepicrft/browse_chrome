@@ -8,6 +8,8 @@ defmodule Chrona.CDP do
 
   use WebSockex
 
+  alias Chrona.Telemetry
+
   defstruct [:ws_pid, id: 1, pending: %{}]
 
   @doc """
@@ -15,10 +17,17 @@ defmodule Chrona.CDP do
   """
   @spec connect(String.t()) :: {:ok, pid()} | {:error, term()}
   def connect(ws_url) do
-    case WebSockex.start_link(ws_url, __MODULE__, %{pending: %{}}) do
-      {:ok, pid} -> {:ok, pid}
-      {:error, _} = error -> error
-    end
+    Telemetry.span(
+      [:cdp, :connect],
+      %{},
+      fn ->
+        case WebSockex.start_link(ws_url, __MODULE__, %{pending: %{}}) do
+          {:ok, pid} -> {:ok, pid}
+          {:error, _} = error -> error
+        end
+      end,
+      &Telemetry.status_metadata/1
+    )
   end
 
   @doc """
@@ -26,8 +35,15 @@ defmodule Chrona.CDP do
   """
   @spec disconnect(pid()) :: :ok
   def disconnect(pid) do
-    WebSockex.cast(pid, :disconnect)
-    :ok
+    Telemetry.span(
+      [:cdp, :disconnect],
+      %{},
+      fn ->
+        WebSockex.cast(pid, :disconnect)
+        :ok
+      end,
+      &Telemetry.status_metadata/1
+    )
   end
 
   @doc """
@@ -98,14 +114,21 @@ defmodule Chrona.CDP do
   end
 
   defp send_command(pid, method, params) do
-    ref = make_ref()
-    WebSockex.cast(pid, {:send_command, method, params, self(), ref})
+    Telemetry.span(
+      [:cdp, :command],
+      %{method: method},
+      fn ->
+        ref = make_ref()
+        WebSockex.cast(pid, {:send_command, method, params, self(), ref})
 
-    receive do
-      {:cdp_response, ^ref, result} -> {:ok, result}
-    after
-      10_000 -> {:error, :cdp_timeout}
-    end
+        receive do
+          {:cdp_response, ^ref, result} -> {:ok, result}
+        after
+          10_000 -> {:error, :cdp_timeout}
+        end
+      end,
+      &Telemetry.status_metadata/1
+    )
   end
 
   # WebSockex Callbacks

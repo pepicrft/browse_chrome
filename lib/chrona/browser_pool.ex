@@ -47,7 +47,7 @@ defmodule Chrona.BrowserPool do
         {:ok, browser, opts}
 
       {:error, reason} ->
-        {:error, reason}
+        raise "failed to start browser worker: #{inspect(reason)}"
     end
   end
 

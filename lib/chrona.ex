@@ -26,6 +26,7 @@ defmodule Chrona do
   """
 
   alias Chrona.BrowserPool
+  alias Chrona.Telemetry
 
   @doc """
   Checks out a browser from the pool, runs the given function, and checks it back in.
@@ -49,6 +50,9 @@ defmodule Chrona do
   @spec checkout(fun :: (pid() -> {term(), :ok | :remove}), keyword()) :: term()
   def checkout(fun, opts \\ []) do
     timeout = Keyword.get(opts, :timeout, 30_000)
-    BrowserPool.checkout(fun, timeout)
+
+    Telemetry.span([:checkout], %{timeout: timeout}, fn ->
+      BrowserPool.checkout(fun, timeout)
+    end)
   end
 end

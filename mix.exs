@@ -33,6 +33,8 @@ defmodule Chrona.MixProject do
 
   defp deps do
     [
+      {:telemetry, "~> 1.3"},
+
       # Chrome process management
       {:muontrap, "~> 1.7"},
 

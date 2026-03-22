@@ -64,6 +64,34 @@ config :chrona,
   chrome_path: "/usr/bin/chromium"     # auto-detected if omitted
 ```
 
+## 📡 Telemetry
+
+Chrona emits [Telemetry](https://hexdocs.pm/telemetry) events for its main lifecycle operations:
+
+- `[:chrona, :checkout, :start | :stop | :exception]`
+- `[:chrona, :browser, :init, :start | :stop | :exception]`
+- `[:chrona, :browser, :capture, :start | :stop | :exception]`
+- `[:chrona, :cdp, :connect, :start | :stop | :exception]`
+- `[:chrona, :cdp, :disconnect, :start | :stop | :exception]`
+- `[:chrona, :cdp, :command, :start | :stop | :exception]`
+
+Stop and exception events include a `:duration` measurement in native time units. CDP command events include the `:method` metadata field, and browser capture events include `:width`, `:height`, and `:quality`.
+
+```elixir
+:telemetry.attach_many(
+  "chrona-logger",
+  [
+    [:chrona, :checkout, :stop],
+    [:chrona, :browser, :capture, :stop],
+    [:chrona, :cdp, :command, :stop]
+  ],
+  fn event, measurements, metadata, _config ->
+    IO.inspect({event, measurements, metadata}, label: "chrona.telemetry")
+  end,
+  nil
+)
+```
+
 ## 📄 License
 
 MIT License. See [LICENSE](LICENSE) for details.

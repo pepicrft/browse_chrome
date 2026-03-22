@@ -9,6 +9,7 @@ defmodule Chrona.Browser do
   use GenServer
 
   alias Chrona.CDP
+  alias Chrona.Telemetry
 
   # Client API
 
@@ -24,7 +25,20 @@ defmodule Chrona.Browser do
   """
   @spec capture(pid(), String.t(), keyword()) :: {:ok, binary()} | {:error, term()}
   def capture(browser, html, opts) do
-    GenServer.call(browser, {:capture, html, opts}, 30_000)
+    metadata = %{
+      width: Keyword.fetch!(opts, :width),
+      height: Keyword.fetch!(opts, :height),
+      quality: Keyword.fetch!(opts, :quality)
+    }
+
+    Telemetry.span(
+      [:browser, :capture],
+      metadata,
+      fn ->
+        GenServer.call(browser, {:capture, html, opts}, 30_000)
+      end,
+      &Telemetry.status_metadata/1
+    )
   end
 
   # GenServer Callbacks
@@ -33,36 +47,43 @@ defmodule Chrona.Browser do
   def init(opts) do
     chrome_path = Keyword.get(opts, :chrome_path) || find_chrome()
 
-    if is_nil(chrome_path) do
-      {:stop, :chrome_not_found}
-    else
-      port = find_available_port()
-      {:ok, user_data_dir} = Briefly.create(directory: true)
+    Telemetry.span(
+      [:browser, :init],
+      %{chrome_path: chrome_path},
+      fn ->
+        if is_nil(chrome_path) do
+          {:stop, :chrome_not_found}
+        else
+          port = find_available_port()
+          {:ok, user_data_dir} = Briefly.create(directory: true)
 
-      args = [
-        "--headless=new",
-        "--disable-gpu",
-        "--no-sandbox",
-        "--disable-dev-shm-usage",
-        "--hide-scrollbars",
-        "--remote-debugging-port=#{port}",
-        "--user-data-dir=#{user_data_dir}",
-        "about:blank"
-      ]
+          args = [
+            "--headless=new",
+            "--disable-gpu",
+            "--no-sandbox",
+            "--disable-dev-shm-usage",
+            "--hide-scrollbars",
+            "--remote-debugging-port=#{port}",
+            "--user-data-dir=#{user_data_dir}",
+            "about:blank"
+          ]
 
-      chrome_pid =
-        spawn_link(fn ->
-          MuonTrap.cmd(chrome_path, args, stderr_to_stdout: true)
-        end)
+          chrome_pid =
+            spawn_link(fn ->
+              MuonTrap.cmd(chrome_path, args, stderr_to_stdout: true)
+            end)
 
-      case wait_for_devtools(port) do
-        {:ok, ws_url} ->
-          {:ok, %{chrome_pid: chrome_pid, ws_url: ws_url}}
+          case wait_for_devtools(port) do
+            {:ok, ws_url} ->
+              {:ok, %{chrome_pid: chrome_pid, ws_url: ws_url}}
 
-        {:error, reason} ->
-          {:stop, reason}
-      end
-    end
+            {:error, reason} ->
+              {:stop, reason}
+          end
+        end
+      end,
+      &Telemetry.status_metadata/1
+    )
   end
 
   @impl GenServer
@@ -139,7 +160,7 @@ defmodule Chrona.Browser do
     port
   end
 
-  defp wait_for_devtools(port, attempts \\ 50) do
+  defp wait_for_devtools(port, attempts \\ 100) do
     wait_for_devtools(port, attempts, 0)
   end
 
