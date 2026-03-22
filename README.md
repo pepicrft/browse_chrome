@@ -1,8 +1,8 @@
-# 🌐 BrowseChrome
+# browse_chrome
 
 [![Hex.pm](https://img.shields.io/hexpm/v/browse_chrome.svg)](https://hex.pm/packages/browse_chrome)
 [![Hex Docs](https://img.shields.io/badge/hex-docs-blue.svg)](https://hexdocs.pm/browse_chrome)
-[![CI](https://github.com/pepicrft/browse_chrome/actions/workflows/browse_chrome.yml/badge.svg)](https://github.com/pepicrft/browse_chrome/actions/workflows/browse_chrome.yml)
+[![CI](https://github.com/pepicrft/browse_chrome/actions/workflows/chrona.yml/badge.svg)](https://github.com/pepicrft/browse_chrome/actions/workflows/chrona.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 Manage headless Chrome instances via the Chrome DevTools Protocol.
@@ -33,9 +33,9 @@ Configure pools through BrowseChrome:
 
 ```elixir
 config :browse_chrome,
-  default_pool: MyApp.ChromaPool,
+  default_pool: MyApp.BrowseChromePool,
   pools: [
-    MyApp.ChromaPool: [pool_size: 4, chrome_path: "/usr/bin/chromium"]
+    MyApp.BrowseChromePool: [pool_size: 4, chrome_path: "/usr/bin/chromium"]
   ]
 ```
 
@@ -52,7 +52,7 @@ Or start a pool directly:
 # lib/my_app/application.ex
 children = [
   {BrowseChrome.BrowserPool,
-   name: MyApp.ChromaPool,
+   name: MyApp.BrowseChromePool,
    pool_size: 4,
    chrome_path: "/usr/bin/chromium"}
 ]
@@ -63,7 +63,7 @@ BrowseChrome does not start a pool for you. The consumer owns pool supervision a
 ### Check out a browser from a pool
 
 ```elixir
-BrowseChrome.checkout(MyApp.ChromaPool, fn browser ->
+BrowseChrome.checkout(MyApp.BrowseChromePool, fn browser ->
   # Use BrowseChrome.CDP to interact with the browser
   result =
     with {:ok, ws_url} <- BrowseChrome.Chrome.ws_url(browser) do
@@ -110,7 +110,7 @@ The convenience helpers cover common tasks like navigation, viewport setup, and 
 Use `BrowseChrome.CDP.command/3` to call any CDP method directly:
 
 ```elixir
-BrowseChrome.checkout(MyApp.ChromaPool, fn browser ->
+BrowseChrome.checkout(MyApp.BrowseChromePool, fn browser ->
   result =
     with {:ok, ws_url} <- BrowseChrome.Chrome.ws_url(browser) do
       BrowseChrome.CDP.with_session(ws_url, fn cdp ->
@@ -131,7 +131,7 @@ Add `BrowseChrome.BrowserPool` to your application's supervision tree:
 # lib/my_app/application.ex
 children = [
   {BrowseChrome.BrowserPool,
-   name: MyApp.ChromaPool,
+   name: MyApp.BrowseChromePool,
    pool_size: 4,
    chrome_path: "/usr/bin/chromium"}
 ]
@@ -147,7 +147,7 @@ The `:browse_chrome, :pools` entries accept the same pool options BrowseChrome p
 Then pass the pool name or pid to `BrowseChrome.checkout/3`, or use `BrowseChrome.checkout/1` with `:default_pool` configured:
 
 ```elixir
-BrowseChrome.checkout(MyApp.ChromaPool, fn browser ->
+BrowseChrome.checkout(MyApp.BrowseChromePool, fn browser ->
   {:ok, :done}
 end)
 ```
