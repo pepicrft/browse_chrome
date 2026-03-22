@@ -32,6 +32,7 @@ defmodule Chrona.MixProject do
 
   defp deps do
     [
+      {:browse, "~> 0.1.0"},
       {:telemetry, "~> 1.3"},
 
       # Chrome process management

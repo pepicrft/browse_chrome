@@ -11,13 +11,13 @@ defmodule Chrona.CDPTest do
     test "disconnects automatically after the callback returns", %{pool: pool} do
       result =
         Chrona.checkout(pool, fn browser ->
-          state = :sys.get_state(browser)
-
           result =
-            Chrona.CDP.with_session(state.ws_url, fn cdp ->
-              assert is_pid(cdp)
-              {:ok, cdp}
-            end)
+            with {:ok, ws_url} <- Chrona.Chrome.ws_url(browser) do
+              Chrona.CDP.with_session(ws_url, fn cdp ->
+                assert is_pid(cdp)
+                {:ok, cdp}
+              end)
+            end
 
           {result, :ok}
         end)
@@ -30,12 +30,12 @@ defmodule Chrona.CDPTest do
     test "disconnects automatically when the callback raises", %{pool: pool} do
       assert_raise RuntimeError, "boom", fn ->
         Chrona.checkout(pool, fn browser ->
-          state = :sys.get_state(browser)
-
-          Chrona.CDP.with_session(state.ws_url, fn cdp ->
-            send(self(), {:cdp_pid, cdp})
-            raise "boom"
-          end)
+          with {:ok, ws_url} <- Chrona.Chrome.ws_url(browser) do
+            Chrona.CDP.with_session(ws_url, fn cdp ->
+              send(self(), {:cdp_pid, cdp})
+              raise "boom"
+            end)
+          end
         end)
       end
 
@@ -48,9 +48,7 @@ defmodule Chrona.CDPTest do
   describe "connect/1 and disconnect/1" do
     test "connects to and disconnects from a browser's CDP endpoint", %{pool: pool} do
       Chrona.checkout(pool, fn browser ->
-        state = :sys.get_state(browser)
-        ws_url = state.ws_url
-
+        assert {:ok, ws_url} = Chrona.Chrome.ws_url(browser)
         assert {:ok, cdp} = Chrona.CDP.connect(ws_url)
         assert is_pid(cdp)
         assert :ok = Chrona.CDP.disconnect(cdp)
@@ -63,12 +61,12 @@ defmodule Chrona.CDPTest do
   describe "command/3" do
     test "sends arbitrary CDP methods", %{pool: pool} do
       Chrona.checkout(pool, fn browser ->
-        state = :sys.get_state(browser)
-
         assert {:ok, %{"product" => product}} =
-                 Chrona.CDP.with_session(state.ws_url, fn cdp ->
-                   Chrona.CDP.command(cdp, "Browser.getVersion")
-                 end)
+                 (with {:ok, ws_url} <- Chrona.Chrome.ws_url(browser) do
+                    Chrona.CDP.with_session(ws_url, fn cdp ->
+                      Chrona.CDP.command(cdp, "Browser.getVersion")
+                    end)
+                  end)
 
         assert String.starts_with?(product, "Chrome/")
         {:ok, :ok}
@@ -83,12 +81,12 @@ defmodule Chrona.CDPTest do
       File.write!(html_path, "<html><body><h1>Test</h1></body></html>")
 
       Chrona.checkout(pool, fn browser ->
-        state = :sys.get_state(browser)
-
         assert :ok =
-                 Chrona.CDP.with_session(state.ws_url, fn cdp ->
-                   Chrona.CDP.navigate(cdp, "file://#{html_path}")
-                 end)
+                 (with {:ok, ws_url} <- Chrona.Chrome.ws_url(browser) do
+                    Chrona.CDP.with_session(ws_url, fn cdp ->
+                      Chrona.CDP.navigate(cdp, "file://#{html_path}")
+                    end)
+                  end)
 
         {:ok, :ok}
       end)
@@ -102,14 +100,14 @@ defmodule Chrona.CDPTest do
       File.write!(html_path, "<html><body style='background: red;'><h1>Screenshot</h1></body></html>")
 
       Chrona.checkout(pool, fn browser ->
-        state = :sys.get_state(browser)
-
         assert {:ok, base64_data} =
-                 Chrona.CDP.with_session(state.ws_url, fn cdp ->
-                   :ok = Chrona.CDP.set_device_metrics(cdp, 800, 600)
-                   :ok = Chrona.CDP.navigate(cdp, "file://#{html_path}")
-                   Chrona.CDP.capture_screenshot(cdp, "jpeg", 80)
-                 end)
+                 (with {:ok, ws_url} <- Chrona.Chrome.ws_url(browser) do
+                    Chrona.CDP.with_session(ws_url, fn cdp ->
+                      :ok = Chrona.CDP.set_device_metrics(cdp, 800, 600)
+                      :ok = Chrona.CDP.navigate(cdp, "file://#{html_path}")
+                      Chrona.CDP.capture_screenshot(cdp, "jpeg", 80)
+                    end)
+                  end)
 
         assert is_binary(base64_data)
 
