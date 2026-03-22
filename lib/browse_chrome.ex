@@ -49,7 +49,6 @@ defmodule BrowseChrome do
   """
 
   alias BrowseChrome.BrowserPool
-  alias BrowseChrome.Telemetry
 
   @doc """
   Builds child specs from pools configured under `:browse_chrome`.
@@ -107,10 +106,7 @@ defmodule BrowseChrome do
         ) :: term()
   def checkout(pool, fun, opts \\ []) do
     timeout = Keyword.get(opts, :timeout, 30_000)
-
-    Telemetry.span([:checkout], %{pool: pool, timeout: timeout}, fn ->
-      BrowserPool.checkout(pool, fun, timeout)
-    end)
+    BrowserPool.checkout(pool, fun, timeout)
   end
 
   @spec default_pool!() :: NimblePool.pool()
