@@ -23,7 +23,20 @@ defmodule Chrona do
 
   ## Setup
 
-  Add `Chrona.BrowserPool` to your application's supervision tree:
+  Configure Chrona-managed pools under `:chrona`:
+
+      config :chrona,
+        default_pool: MyApp.ChromaPool,
+        pools: [
+          MyApp.ChromaPool: [pool_size: 4, chrome_path: "/usr/bin/chromium"]
+        ]
+
+  Then add the configured pools to your supervision tree:
+
+      children = Chrona.children()
+
+  You can also add `Chrona.BrowserPool` directly to your application's
+  supervision tree:
 
       children = [
         {Chrona.BrowserPool,
@@ -34,7 +47,38 @@ defmodule Chrona do
   """
 
   alias Browse
+  alias Chrona.BrowserPool
   alias Chrona.Telemetry
+
+  @doc """
+  Builds child specs from pools configured under `:chrona`.
+  """
+  @spec children() :: [Supervisor.child_spec()]
+  def children do
+    configured_pools()
+    |> Keyword.keys()
+    |> Enum.map(&BrowserPool.child_spec/1)
+  end
+
+  @doc """
+  Checks out a browser from the configured default pool.
+
+  ## Options
+
+    * `:timeout` - checkout timeout in milliseconds (default: `30_000`)
+  """
+  @spec checkout((pid() -> term()), keyword()) :: term()
+  def checkout(fun, opts) when is_function(fun, 1) and is_list(opts) do
+    checkout(default_pool!(), fun, opts)
+  end
+
+  @doc """
+  Checks out a browser from the configured default pool.
+  """
+  @spec checkout((pid() -> term())) :: term()
+  def checkout(fun) when is_function(fun, 1) do
+    checkout(default_pool!(), fun, [])
+  end
 
   @doc """
   Checks out a browser from the pool, runs the given function, and checks it back in.
@@ -66,6 +110,16 @@ defmodule Chrona do
     Telemetry.span([:checkout], %{pool: pool, timeout: timeout}, fn ->
       Browse.checkout(pool, fn browser -> fun.(unwrap_browser(browser)) end, opts)
     end)
+  end
+
+  @spec default_pool!() :: NimblePool.pool()
+  def default_pool! do
+    Application.fetch_env!(:chrona, :default_pool)
+  end
+
+  @spec configured_pools() :: keyword()
+  def configured_pools do
+    Application.get_env(:chrona, :pools, [])
   end
 
   defp unwrap_browser(%Browse{state: browser}), do: browser

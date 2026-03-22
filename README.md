@@ -27,6 +27,25 @@ Chrona requires Chrome or Chromium to be installed on the system. It will auto-d
 
 ### Add a pool to your supervision tree
 
+Configure pools through Chrona:
+
+```elixir
+config :chrona,
+  default_pool: MyApp.ChromaPool,
+  pools: [
+    MyApp.ChromaPool: [pool_size: 4, chrome_path: "/usr/bin/chromium"]
+  ]
+```
+
+Then add the configured pools to your supervision tree:
+
+```elixir
+# lib/my_app/application.ex
+children = Chrona.children()
+```
+
+Or start a pool directly:
+
 ```elixir
 # lib/my_app/application.ex
 children = [
@@ -37,7 +56,7 @@ children = [
 ]
 ```
 
-Chrona does not start a pool for you. The consumer owns pool supervision and decides how many pools to run, how they are named, and where they live in the supervision tree. `Chrona.BrowserPool` remains the Chrona-facing compatibility wrapper, backed internally by `Browse`.
+Chrona does not start a pool for you. The consumer owns pool supervision and decides how many pools to run, how they are named, and where they live in the supervision tree. `Chrona.BrowserPool` remains the Chrona-facing compatibility wrapper, backed internally by `Browse`, but its configuration now lives under `:chrona`.
 
 ### Check out a browser from a pool
 
@@ -56,6 +75,14 @@ end)
 ```
 
 `Chrona.CDP.with_session/2` is the recommended API. It guarantees the WebSocket is disconnected even if your callback raises or returns early.
+
+If you configured `default_pool`, you can omit the pool name:
+
+```elixir
+Chrona.checkout(fn browser ->
+  {:ok, browser}
+end)
+```
 
 ### Direct browser management
 
@@ -109,7 +136,9 @@ Options:
 - `:pool_size` - number of warm Chrome instances (default: `2`)
 - `:chrome_path` - path to Chrome/Chromium binary (auto-detected if omitted)
 
-Then pass the pool name or pid to `Chrona.checkout/3`:
+The `:chrona, :pools` entries accept the same pool options Chrona passes down to `Browse`, while keeping the `Browse` implementation module internal.
+
+Then pass the pool name or pid to `Chrona.checkout/3`, or use `Chrona.checkout/1` with `:default_pool` configured:
 
 ```elixir
 Chrona.checkout(MyApp.ChromaPool, fn browser ->
