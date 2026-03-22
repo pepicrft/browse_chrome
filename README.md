@@ -7,7 +7,7 @@
 
 Manage headless Chrome instances via the Chrome DevTools Protocol.
 
-Chrona provides a pool of warm headless Chrome/Chromium instances managed through a supervision tree, ready for use via the Chrome DevTools Protocol. It handles browser lifecycle, CDP WebSocket communication, and pool management so you can focus on what you want to do with the browser.
+Chrona provides a pool of warm headless Chrome/Chromium instances managed through a supervision tree, ready for use via the Chrome DevTools Protocol. It handles Chrome lifecycle and CDP WebSocket communication directly, and now delegates shared browser interface and pool runtime responsibilities to [`Browse`](https://hex.pm/packages/browse).
 
 ## 📦 Installation
 
@@ -37,7 +37,7 @@ children = [
 ]
 ```
 
-Chrona does not start a pool for you. The consumer owns pool supervision and decides how many pools to run, how they are named, and where they live in the supervision tree.
+Chrona does not start a pool for you. The consumer owns pool supervision and decides how many pools to run, how they are named, and where they live in the supervision tree. `Chrona.BrowserPool` remains the Chrona-facing compatibility wrapper, backed internally by `Browse`.
 
 ### Check out a browser from a pool
 
@@ -69,7 +69,7 @@ end)
 
 - `Chrona.Browser` - GenServer managing a single headless Chrome instance
 - `Chrona.CDP` - WebSocket client for the Chrome DevTools Protocol
-- `Chrona.BrowserPool` - NimblePool for warm Chrome instances
+- `Chrona.BrowserPool` - Chrona-facing pool wrapper backed by `Browse`
 
 ### Use the full CDP surface
 

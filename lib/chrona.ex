@@ -4,7 +4,8 @@ defmodule Chrona do
 
   Chrona provides a pool of warm headless Chrome/Chromium browser instances,
   managed through a supervision tree. Each browser is ready to accept commands
-  via the Chrome DevTools Protocol without cold-start overhead.
+  via the Chrome DevTools Protocol without cold-start overhead, with pool and
+  browser lifecycle integration delegated to `Browse`.
 
   ## Usage
 
@@ -32,7 +33,7 @@ defmodule Chrona do
       ]
   """
 
-  alias Chrona.BrowserPool
+  alias Browse
   alias Chrona.Telemetry
 
   @doc """
@@ -63,7 +64,9 @@ defmodule Chrona do
     timeout = Keyword.get(opts, :timeout, 30_000)
 
     Telemetry.span([:checkout], %{pool: pool, timeout: timeout}, fn ->
-      BrowserPool.checkout(pool, fun, timeout)
+      Browse.checkout(pool, fn browser -> fun.(unwrap_browser(browser)) end, opts)
     end)
   end
+
+  defp unwrap_browser(%Browse{state: browser}), do: browser
 end
