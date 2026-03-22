@@ -9,8 +9,8 @@ defmodule BrowseChrome.TelemetryTest do
     :telemetry.attach_many(
       handler_id,
       [
-        [:browse, :checkout, :start],
-        [:browse, :checkout, :stop],
+        [:browse_chrome, :checkout, :start],
+        [:browse_chrome, :checkout, :stop],
         [:browse_chrome, :browser, :capture, :start],
         [:browse_chrome, :browser, :capture, :stop],
         [:browse_chrome, :cdp, :command, :start],
@@ -28,20 +28,20 @@ defmodule BrowseChrome.TelemetryTest do
     send(pid, {:telemetry_event, event, measurements, metadata})
   end
 
-  test "checkout emits browse telemetry events", %{pool: pool} do
+  test "checkout emits telemetry events", %{pool: pool} do
     assert :ok =
              BrowseChrome.checkout(pool, fn browser ->
                assert is_pid(browser)
                {:ok, :ok}
              end)
 
-    assert_receive {:telemetry_event, [:browse, :checkout, :start], %{system_time: system_time},
+    assert_receive {:telemetry_event, [:browse_chrome, :checkout, :start], %{system_time: system_time},
                     %{pool: ^pool, timeout: 30_000}},
                    1_000
 
     assert is_integer(system_time)
 
-    assert_receive {:telemetry_event, [:browse, :checkout, :stop], %{duration: duration},
+    assert_receive {:telemetry_event, [:browse_chrome, :checkout, :stop], %{duration: duration},
                     %{pool: ^pool, timeout: 30_000}},
                    1_000
 

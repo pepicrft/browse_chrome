@@ -154,10 +154,9 @@ end)
 
 ## 📡 Telemetry
 
-`Browse` emits [Telemetry](https://hexdocs.pm/telemetry) for pool lifecycle operations such as pool start, checkout, and worker lifecycle.
+BrowseChrome emits [Telemetry](https://hexdocs.pm/telemetry) events for its main lifecycle operations:
 
-BrowseChrome emits Telemetry for Chrome-specific operations layered on top:
-
+- `[:browse_chrome, :checkout, :start | :stop | :exception]`
 - `[:browse_chrome, :browser, :init, :start | :stop | :exception]`
 - `[:browse_chrome, :browser, :capture, :start | :stop | :exception]`
 - `[:browse_chrome, :cdp, :connect, :start | :stop | :exception]`
@@ -170,7 +169,7 @@ Stop and exception events include a `:duration` measurement in native time units
 :telemetry.attach_many(
   "browse_chrome-logger",
   [
-    [:browse, :checkout, :stop],
+    [:browse_chrome, :checkout, :stop],
     [:browse_chrome, :browser, :capture, :stop],
     [:browse_chrome, :cdp, :command, :stop]
   ],
