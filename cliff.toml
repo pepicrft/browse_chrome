@@ -36,7 +36,7 @@ commit_parsers = [
   { message = "^\\[Release\\]", skip = true },
   { message = "(?i)(readme|documentation|tutorial|\\bdocs?\\b)", skip = true },
   { message = "(?i)(github actions|\\bworkflow\\b|\\bpipeline\\b|\\bci\\b)", skip = true },
-  { message = "^(?i)(test|spec|chore)", skip = true },
+  { message = "^(?i)(test|spec)", skip = true },
   { body = "(?i)security", group = "Security" },
   { message = "^(?i)(fix|bugfix|hotfix|correct|prevent|handle)", group = "Bug Fixes" },
   { message = "^(?i)(feat|add|allow|adapt|create|implement|introduce|make|preserve|rename|support|use)", group = "Features" },
