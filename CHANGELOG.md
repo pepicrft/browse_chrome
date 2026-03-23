@@ -1,6 +1,12 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
+## [0.2.6] - 2026-03-23
+
+### Bug Fixes
+
+- fix: include chore prs in release notes
+
 ## [0.2.5] - 2026-03-23
 
 ### Bug Fixes
