@@ -1,6 +1,17 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
+## [0.2.5] - 2026-03-23
+
+### Bug Fixes
+
+- fix: release chore updates
+
+
+### Changes
+
+- chore: update browse telemetry integration ([#6](https://github.com/pepicrft/browse_chrome/pull/6)) by [@pepicrft](https://github.com/pepicrft)
+
 ## [0.2.4] - 2026-03-22
 
 ### Changes
