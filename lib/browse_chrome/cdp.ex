@@ -153,6 +153,7 @@ defmodule BrowseChrome.CDP do
         WebSockex.cast(pid, {:send_command, method, params, self(), ref})
 
         receive do
+          {:cdp_response, ^ref, {:error, _} = error} -> error
           {:cdp_response, ^ref, result} -> {:ok, result}
         after
           10_000 -> {:error, :cdp_timeout}
