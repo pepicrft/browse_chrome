@@ -1,6 +1,12 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
+## [0.3.0] - 2026-03-24
+
+### Features
+
+- feat: support browse 0.3 browser APIs ([#8](https://github.com/pepicrft/browse_chrome/pull/8)) by [@pepicrft](https://github.com/pepicrft)
+
 ## [0.2.6] - 2026-03-23
 
 ### Bug Fixes
