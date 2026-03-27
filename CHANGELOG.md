@@ -1,6 +1,12 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
+## [0.4.0] - 2026-03-27
+
+### Features
+
+- feat: implement set_viewport using CDP device metrics ([#10](https://github.com/pepicrft/browse_chrome/pull/10)) by [@pepicrft](https://github.com/pepicrft)
+
 ## [0.3.0] - 2026-03-24
 
 ### Features
