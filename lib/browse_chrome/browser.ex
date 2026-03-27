@@ -220,6 +220,13 @@ defmodule BrowseChrome.Browser do
   end
 
   @impl Browse.Browser
+  def set_viewport(browser, width, height, _opts) do
+    with_ws_session(browser, fn cdp ->
+      CDP.set_device_metrics(cdp, width, height)
+    end)
+  end
+
+  @impl Browse.Browser
   def clear_cookies(browser, _opts) do
     with_ws_session(browser, fn cdp ->
       case CDP.command(cdp, "Network.clearBrowserCookies", %{}) do
