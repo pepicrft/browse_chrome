@@ -32,7 +32,7 @@ defmodule BrowseChrome.MixProject do
 
   defp deps do
     [
-      {:browse, "~> 0.3.0"},
+      {:browse, path: "/Users/pepicrft/src/github.com/pepicrft/browse"},
       {:telemetry, "~> 1.3"},
 
       # Chrome process management

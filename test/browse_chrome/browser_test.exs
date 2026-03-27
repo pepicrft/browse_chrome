@@ -69,6 +69,14 @@ defmodule BrowseChrome.BrowserTest do
     end)
   end
 
+  test "sets the viewport size", %{pool: pool} do
+    Browse.checkout(pool, fn browser ->
+      assert :ok = Browse.set_viewport(browser, 1920, 1080)
+
+      {:ok, :ok}
+    end)
+  end
+
   test "manages cookies", %{pool: pool} do
     Browse.checkout(pool, fn browser ->
       cookie = %{"name" => "session", "value" => "abc123"}
