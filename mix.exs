@@ -1,7 +1,7 @@
 defmodule BrowseChrome.MixProject do
   use Mix.Project
 
-  @version "0.4.0"
+  @version "0.4.1"
   @source_url "https://github.com/pepicrft/browse_chrome"
 
   def project do

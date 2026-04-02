@@ -1,6 +1,12 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
+## [0.4.1] - 2026-04-02
+
+### Bug Fixes
+
+- fix: ensure HOME is writable before launching Chrome ([#11](https://github.com/pepicrft/browse_chrome/pull/11)) by [@pepicrft](https://github.com/pepicrft)
+
 ## [0.4.0] - 2026-03-27
 
 ### Features
