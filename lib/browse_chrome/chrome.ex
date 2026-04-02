@@ -80,7 +80,10 @@ defmodule BrowseChrome.Chrome do
 
           chrome_pid =
             spawn_link(fn ->
-              MuonTrap.cmd(chrome_path, args, stderr_to_stdout: true)
+              MuonTrap.cmd(chrome_path, args,
+                stderr_to_stdout: true,
+                env: chrome_env()
+              )
             end)
 
           case wait_for_devtools(port) do
@@ -200,5 +203,33 @@ defmodule BrowseChrome.Chrome do
   defp retry_devtools(port, max_attempts, attempt) do
     Process.sleep(100)
     wait_for_devtools(port, max_attempts, attempt + 1)
+  end
+
+  # Chrome's crashpad handler requires a writable HOME directory.
+  # In containerized environments running as non-root users (e.g. `nobody`),
+  # HOME may point to a non-existent or non-writable directory, causing
+  # Chrome to crash on startup with a `:devtools_timeout` error.
+  # We ensure HOME is set to a writable temp directory.
+  defp chrome_env do
+    home = System.get_env("HOME") || System.tmp_dir!()
+
+    if File.dir?(home) and writable?(home) do
+      []
+    else
+      [{"HOME", System.tmp_dir!()}]
+    end
+  end
+
+  defp writable?(path) do
+    test_file = Path.join(path, ".browse_chrome_write_test")
+
+    case File.write(test_file, "") do
+      :ok ->
+        File.rm(test_file)
+        true
+
+      {:error, _} ->
+        false
+    end
   end
 end
