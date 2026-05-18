@@ -5,19 +5,19 @@ All notable changes to this project will be documented in this file.
 
 ### Bug Fixes
 
-- fix: ensure HOME is writable before launching Chrome ([#11](https://github.com/pepicrft/browse_chrome/pull/11)) by [@pepicrft](https://github.com/pepicrft)
+- fix: ensure HOME is writable before launching Chrome ([#11](https://github.com/tuist/browse_chrome/pull/11)) by [@pepicrft](https://github.com/pepicrft)
 
 ## [0.4.0] - 2026-03-27
 
 ### Features
 
-- feat: implement set_viewport using CDP device metrics ([#10](https://github.com/pepicrft/browse_chrome/pull/10)) by [@pepicrft](https://github.com/pepicrft)
+- feat: implement set_viewport using CDP device metrics ([#10](https://github.com/tuist/browse_chrome/pull/10)) by [@pepicrft](https://github.com/pepicrft)
 
 ## [0.3.0] - 2026-03-24
 
 ### Features
 
-- feat: support browse 0.3 browser APIs ([#8](https://github.com/pepicrft/browse_chrome/pull/8)) by [@pepicrft](https://github.com/pepicrft)
+- feat: support browse 0.3 browser APIs ([#8](https://github.com/tuist/browse_chrome/pull/8)) by [@pepicrft](https://github.com/pepicrft)
 
 ## [0.2.6] - 2026-03-23
 
@@ -34,7 +34,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changes
 
-- chore: update browse telemetry integration ([#6](https://github.com/pepicrft/browse_chrome/pull/6)) by [@pepicrft](https://github.com/pepicrft)
+- chore: update browse telemetry integration ([#6](https://github.com/tuist/browse_chrome/pull/6)) by [@pepicrft](https://github.com/pepicrft)
 
 ## [0.2.4] - 2026-03-22
 
@@ -46,31 +46,31 @@ All notable changes to this project will be documented in this file.
 
 ### Bug Fixes
 
-- fix: improve release note templates ([#2](https://github.com/pepicrft/browse_chrome/pull/2)) by [@pepicrft](https://github.com/pepicrft)
+- fix: improve release note templates ([#2](https://github.com/tuist/browse_chrome/pull/2)) by [@pepicrft](https://github.com/pepicrft)
 
 ## [0.2.2] - 2026-03-22
 
 ### Changes
 
-- refactor: align browser pooling with browse ([#5](https://github.com/pepicrft/browse_chrome/pull/5)) by [@pepicrft](https://github.com/pepicrft)
+- refactor: align browser pooling with browse ([#5](https://github.com/tuist/browse_chrome/pull/5)) by [@pepicrft](https://github.com/pepicrft)
 
 ## [0.2.1] - 2026-03-22
 
 ### Bug Fixes
 
-- fix: adjust generated release notes ([#4](https://github.com/pepicrft/browse_chrome/pull/4)) by [@pepicrft](https://github.com/pepicrft)
+- fix: adjust generated release notes ([#4](https://github.com/tuist/browse_chrome/pull/4)) by [@pepicrft](https://github.com/pepicrft)
 
 ## [0.2.0] - 2026-03-22
 
 ### Features
 
-- feat: add managed CDP sessions and generic commands ([#3](https://github.com/pepicrft/browse_chrome/pull/3)) by [@pepicrft](https://github.com/pepicrft)
+- feat: add managed CDP sessions and generic commands ([#3](https://github.com/tuist/browse_chrome/pull/3)) by [@pepicrft](https://github.com/pepicrft)
 
 ## [0.1.1] - 2026-03-22
 
 ### Changes
 
-- refactor: make browser pools consumer-managed ([#1](https://github.com/pepicrft/browse_chrome/pull/1)) by [@pepicrft](https://github.com/pepicrft)
+- refactor: make browser pools consumer-managed ([#1](https://github.com/tuist/browse_chrome/pull/1)) by [@pepicrft](https://github.com/pepicrft)
 
 ## [0.1.0] - 2026-03-22
 

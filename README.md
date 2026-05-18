@@ -2,7 +2,7 @@
 
 [![Hex.pm](https://img.shields.io/hexpm/v/browse_chrome.svg)](https://hex.pm/packages/browse_chrome)
 [![Hex Docs](https://img.shields.io/badge/hex-docs-blue.svg)](https://hexdocs.pm/browse_chrome)
-[![CI](https://github.com/pepicrft/browse_chrome/actions/workflows/chrona.yml/badge.svg)](https://github.com/pepicrft/browse_chrome/actions/workflows/chrona.yml)
+[![CI](https://github.com/tuist/browse_chrome/actions/workflows/chrona.yml/badge.svg)](https://github.com/tuist/browse_chrome/actions/workflows/chrona.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 Manage headless Chrome instances via the Chrome DevTools Protocol.
